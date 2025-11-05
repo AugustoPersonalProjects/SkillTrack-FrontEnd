@@ -1,9 +1,9 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AuthContext } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Register() {
-  const { register } = useContext(AuthContext);
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
@@ -18,7 +18,6 @@ export default function Register() {
     e.preventDefault();
     setError("");
 
-    // Validações
     if (formData.senha !== formData.confirmarSenha) {
       setError("As senhas não coincidem");
       return;
