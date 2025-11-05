@@ -1,7 +1,20 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, TrendingUp, Edit, Trash2, Award } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  TrendingUp,
+  Edit,
+  Trash2,
+  Award,
+} from "lucide-react";
 import { skillService } from "../services/skillService";
-import { type Skill, type SkillRequest, type Category, SkillLevel } from "../types/skill";
+import {
+  type Skill,
+  type SkillRequest,
+  type Category,
+  SkillLevel,
+} from "../types/interfaces";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Skills() {
@@ -19,7 +32,7 @@ export default function Skills() {
     description: "",
     categoryId: 0,
     level: SkillLevel.BEGINNER,
-    userId: user?.id_usuario || 1 // Default para desenvolvimento
+    userId: user?.id_usuario || 1, // Default para desenvolvimento
   });
 
   useEffect(() => {
@@ -32,10 +45,12 @@ export default function Skills() {
       setLoading(true);
       setError("");
       const skillsData = await skillService.getSkills();
-      setSkills(skillsData);
+      setSkills(Array.isArray(skillsData) ? skillsData : []);
     } catch (error) {
       console.error("Erro ao carregar skills:", error);
-      setError("Erro ao carregar skills. Verifique se o servidor está rodando.");
+      setError(
+        "Erro ao carregar skills. Verifique se o servidor está rodando."
+      );
       setSkills([]);
     } finally {
       setLoading(false);
@@ -44,10 +59,11 @@ export default function Skills() {
 
   const loadCategories = async () => {
     try {
-      const categoriesData = await skillService.getCategories();
-      setCategories(categoriesData);
-    } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
+      const data = await skillService.getCategories();
+      console.log("Categorias carregadas:", data);
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Erro ao carregar categorias:", err);
       setCategories([]);
     }
   };
@@ -90,7 +106,7 @@ export default function Skills() {
       description: skill.description || "",
       categoryId: skill.category_id,
       level: skill.level,
-      userId: user?.id_usuario || 1
+      userId: user?.id_usuario || 1,
     });
     setShowForm(true);
     setError("");
@@ -115,7 +131,7 @@ export default function Skills() {
       description: "",
       categoryId: 0,
       level: SkillLevel.BEGINNER,
-      userId: user?.id_usuario || 1
+      userId: user?.id_usuario || 1,
     });
     setEditingSkill(null);
     setShowForm(false);
@@ -124,25 +140,35 @@ export default function Skills() {
 
   const getLevelColor = (level: SkillLevel) => {
     switch (level) {
-      case SkillLevel.BEGINNER: return "bg-yellow-100 text-yellow-800";
-      case SkillLevel.INTERMEDIATE: return "bg-blue-100 text-blue-800";
-      case SkillLevel.ADVANCED: return "bg-green-100 text-green-800";
-      case SkillLevel.EXPERT: return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-800";
+      case SkillLevel.BEGINNER:
+        return "bg-yellow-100 text-yellow-800";
+      case SkillLevel.INTERMEDIATE:
+        return "bg-blue-100 text-blue-800";
+      case SkillLevel.ADVANCED:
+        return "bg-green-100 text-green-800";
+      case SkillLevel.EXPERT:
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getLevelText = (level: SkillLevel) => {
     switch (level) {
-      case SkillLevel.BEGINNER: return "Iniciante";
-      case SkillLevel.INTERMEDIATE: return "Intermediário";
-      case SkillLevel.ADVANCED: return "Avançado";
-      case SkillLevel.EXPERT: return "Especialista";
-      default: return level;
+      case SkillLevel.BEGINNER:
+        return "Iniciante";
+      case SkillLevel.INTERMEDIATE:
+        return "Intermediário";
+      case SkillLevel.ADVANCED:
+        return "Avançado";
+      case SkillLevel.EXPERT:
+        return "Especialista";
+      default:
+        return level;
     }
   };
 
-  const filteredSkills = skills.filter(skill =>
+  const filteredSkills = skills.filter((skill) =>
     skill.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -160,7 +186,9 @@ export default function Skills() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Skills 🛠️</h2>
-          <p className="text-gray-600">Gerencie suas habilidades e acompanhe o progresso</p>
+          <p className="text-gray-600">
+            Gerencie suas habilidades e acompanhe o progresso
+          </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -173,11 +201,13 @@ export default function Skills() {
 
       {/* Mensagem de erro/sucesso */}
       {error && (
-        <div className={`p-4 rounded-xl ${
-          error.includes("sucesso") 
-            ? "bg-green-50 border border-green-200 text-green-700" 
-            : "bg-red-50 border border-red-200 text-red-700"
-        }`}>
+        <div
+          className={`p-4 rounded-xl ${
+            error.includes("sucesso")
+              ? "bg-green-50 border border-green-200 text-green-700"
+              : "bg-red-50 border border-red-200 text-red-700"
+          }`}
+        >
           {error}
         </div>
       )}
@@ -200,13 +230,13 @@ export default function Skills() {
         </button>
       </div>
 
-      {/* Skill Form */}
+      {/* Formulário */}
       {showForm && (
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
           <h3 className="text-xl font-bold text-gray-900 mb-4">
             {editingSkill ? "Editar Skill" : "Nova Skill"}
           </h3>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Nome */}
@@ -217,7 +247,9 @@ export default function Skills() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
                   placeholder="Ex: Spring Boot, React, Docker..."
                   required
@@ -231,7 +263,9 @@ export default function Skills() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
                   placeholder="Descreva esta habilidade..."
                   rows={2}
@@ -245,16 +279,26 @@ export default function Skills() {
                 </label>
                 <select
                   value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      categoryId: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
                   required
                 >
                   <option value={0}>Selecione uma categoria</option>
-                  {categories.map(category => (
-                    <option key={category.id_category} value={category.id_category}>
-                      {category.name}
-                    </option>
-                  ))}
+                  {(Array.isArray(categories) ? categories : []).map(
+                    (category) => (
+                      <option
+                        key={category.id_category}
+                        value={category.id_category}
+                      >
+                        {category.name}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
@@ -265,11 +309,16 @@ export default function Skills() {
                 </label>
                 <select
                   value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value as SkillLevel })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      level: e.target.value as SkillLevel,
+                    })
+                  }
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
                   required
                 >
-                  {Object.values(SkillLevel).map(level => (
+                  {Object.values(SkillLevel).map((level) => (
                     <option key={level} value={level}>
                       {getLevelText(level)}
                     </option>
@@ -278,7 +327,7 @@ export default function Skills() {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Botões */}
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
@@ -299,73 +348,90 @@ export default function Skills() {
         </div>
       )}
 
-      {/* Skills Grid */}
+      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSkills.map((skill) => (
-          <div key={skill.id_skill} className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group">
+        {(Array.isArray(filteredSkills) ? filteredSkills : []).map((skill) => (
+          <div
+            key={skill.id_skill}
+            className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group"
+          >
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
                   {skill.name}
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  {categories.find(cat => cat.id_category === skill.category_id)?.name || "Sem categoria"}
+                  {(Array.isArray(categories) ? categories : []).find(
+                    (cat) => cat.id_category === skill.category_id
+                  )?.name || "Sem categoria"}
                 </p>
                 {skill.description && (
-                  <p className="text-gray-500 text-sm mt-1">{skill.description}</p>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {skill.description}
+                  </p>
                 )}
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(skill.level)}`}>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(
+                  skill.level
+                )}`}
+              >
                 {getLevelText(skill.level)}
               </span>
             </div>
 
-            {/* Progress Stats */}
+            {/* Progresso */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Progresso</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Progresso
+                </span>
                 <span className="text-sm font-bold text-gray-900">
-                  {skill.progress_history && skill.progress_history.length > 0 
-                    ? `${skill.progress_history[skill.progress_history.length - 1]?.percentage || 0}%`
-                    : "0%"
-                  }
+                  {skill.progress_history && skill.progress_history.length > 0
+                    ? `${
+                        skill.progress_history[
+                          skill.progress_history.length - 1
+                        ]?.percentage || 0
+                      }%`
+                    : "0%"}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="h-2 rounded-full bg-blue-500 transition-all duration-500"
-                  style={{ 
-                    width: `${skill.progress_history && skill.progress_history.length > 0 
-                      ? skill.progress_history[skill.progress_history.length - 1]?.percentage || 0 
-                      : 0}%` 
+                  style={{
+                    width: `${
+                      skill.progress_history &&
+                      skill.progress_history.length > 0
+                        ? skill.progress_history[
+                            skill.progress_history.length - 1
+                          ]?.percentage || 0
+                        : 0
+                    }%`,
                   }}
                 ></div>
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Estatísticas */}
             <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
               <div className="flex items-center gap-1">
                 <TrendingUp className="w-4 h-4 text-green-500" />
-                <span>
-                  {skill.progress_history?.length || 0} atualizações
-                </span>
+                <span>{skill.progress_history?.length || 0} atualizações</span>
               </div>
-              <span>
-                {skill.goals?.length || 0} metas
-              </span>
+              <span>{skill.goals?.length || 0} metas</span>
             </div>
 
-            {/* Action Buttons */}
+            {/* Botões */}
             <div className="flex gap-2 pt-4 border-t border-gray-200">
-              <button 
+              <button
                 onClick={() => handleEdit(skill)}
                 className="flex-1 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg hover:bg-blue-100 transition-colors duration-200 text-sm font-medium flex items-center justify-center gap-1"
               >
                 <Edit className="w-4 h-4" />
                 Editar
               </button>
-              <button 
+              <button
                 onClick={() => handleDelete(skill.id_skill)}
                 className="flex-1 bg-red-50 text-red-600 py-2 px-3 rounded-lg hover:bg-red-100 transition-colors duration-200 text-sm font-medium flex items-center justify-center gap-1"
               >
@@ -384,16 +450,17 @@ export default function Skills() {
             <Award className="w-12 h-12 text-gray-400" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">
-            {searchTerm ? "Nenhuma skill encontrada" : "Nenhuma skill cadastrada"}
+            {searchTerm
+              ? "Nenhuma skill encontrada"
+              : "Nenhuma skill cadastrada"}
           </h3>
           <p className="text-gray-600 mb-6">
-            {searchTerm 
-              ? "Tente ajustar os termos da pesquisa" 
-              : "Comece adicionando suas primeiras habilidades"
-            }
+            {searchTerm
+              ? "Tente ajustar os termos da pesquisa"
+              : "Comece adicionando suas primeiras habilidades"}
           </p>
           {!searchTerm && (
-            <button 
+            <button
               onClick={() => setShowForm(true)}
               className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors duration-200"
             >
