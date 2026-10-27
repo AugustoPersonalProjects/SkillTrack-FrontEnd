@@ -1,15 +1,19 @@
 // ENUMS
-export const enum SkillLevel {
-  BEGINNER = "BEGINNER",
-  INTERMEDIATE = "INTERMEDIATE",
-  ADVANCED = "ADVANCED",
-  EXPERT = "EXPERT"
-}
+export const SkillLevel = {
+  BEGINNER: "BEGINNER",
+  INTERMEDIATE: "INTERMEDIATE",
+  ADVANCED: "ADVANCED",
+  EXPERT: "EXPERT",
+} as const;
 
-export const enum Perfil {
-  ADMIN = "ADMIN",
-  USER = "USER"
-}
+export type SkillLevel = (typeof SkillLevel)[keyof typeof SkillLevel];
+
+export const Perfil = {
+  ADMIN: "ADMIN",
+  USER: "USER",
+} as const;
+
+export type Perfil = (typeof Perfil)[keyof typeof Perfil];
 
 // INTERFACES DE DOMÍNIO
 export interface Skill {
@@ -48,7 +52,7 @@ export interface Goal {
 
 export interface GoalRequest {
   title: string;
-  description: string;
+  description?: string;
   deadline: string;
   skill_id: number;
   user_id?: number;
@@ -64,7 +68,7 @@ export interface Progress {
 }
 
 export interface ProgressRequest {
-  skillId: number;
+  skill_id: number;
   percentage: number;
   date?: string;
   notes?: string;
@@ -77,6 +81,7 @@ export interface Usuario {
   email: string;
   perfil: Perfil;
   data_criacao: string;
+  foto?: string;
 }
 
 /**
@@ -92,9 +97,6 @@ Resposta de login
  */
 export interface LoginResponse {
   token: string;
-  email: string;
-  name: string;
-  id: number;
 }
 
 /**
