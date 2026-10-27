@@ -14,9 +14,7 @@ export const goalService = {
   },
 
   async getUserGoals(userId: number): Promise<Goal[]> {
-    console.log("Chamando endpoint: /goals/user/" + userId);
     const response = await api.get(`/goals/user/${userId}`);
-    console.log("Metas carregadas:", response.data);
     return response.data;
   },
 
@@ -26,21 +24,16 @@ export const goalService = {
     return response.data;
   },
 
-  async updateGoal(id: number, data: Partial<GoalRequest>): Promise<Goal> {
-    try {
-      const response = await api.put(`/goals/${id}`, data);
+  async updateGoal(id: number, data: GoalRequest): Promise<Goal> {
+    const response = await api.put(`/goals/${id}`, data);
+    addNotification("Meta atualizada!", "goal");
+    return response.data;
+  },
 
-      if (data.hasOwnProperty("completed") && data.completed === true) {
-        addNotification("Meta concluída com sucesso!", "goal");
-      } else {
-        addNotification("Meta atualizada!", "goal");
-      }
-
-      return response.data;
-    } catch (error) {
-      console.error("Erro ao atualizar meta:", error);
-      throw error;
-    }
+  async completeGoal(id: number): Promise<boolean> {
+    await api.post(`/goals/${id}/complete`);
+    addNotification("Meta concluída com sucesso!", "goal");
+    return true;
   },
 
   async deleteGoal(id: number): Promise<void> {

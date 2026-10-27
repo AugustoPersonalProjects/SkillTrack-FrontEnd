@@ -14,6 +14,12 @@ export const skillService = {
     return data.content || data;
   },
 
+  // Lista as skills do usuário logado
+  async getUserSkills(userId: number): Promise<Skill[]> {
+    const response = await api.get(`/api/skills/user/${userId}`);
+    return response.data;
+  },
+
   // Busca uma skill específica por ID
   async getSkillById(id: number): Promise<Skill> {
     const response = await api.get(`/api/skills/${id}`);
