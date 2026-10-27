@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "../services/authService";
-import type { Usuario } from "../types/interfaces";
+import type { RegisterRequest, Usuario } from "../types/interfaces";
 
 interface AuthContextType {
   user: Usuario | null;
   loadingUser: boolean;
   login: (email: string, senha: string) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
 }
 
@@ -17,19 +18,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const savedUser = authService.getCurrentUser();
-    if (savedUser) {
-      console.log("✅ Usuário restaurado:", savedUser);
+    if (savedUser && authService.getToken()) {
       setUser(savedUser);
-    } else {
-      console.warn("⚠️ Nenhum usuário encontrado no localStorage");
     }
     setLoadingUser(false);
   }, []);
 
   const login = async (email: string, senha: string) => {
-    await authService.login({ email, senha });
-    const currentUser = authService.getCurrentUser();
+    const currentUser = await authService.login({ email, senha });
     setUser(currentUser);
+  };
+
+  const register = async (data: RegisterRequest) => {
+    try {
+      const novoUsuario = await authService.register(data);
+      setUser(novoUsuario);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   };
 
   const logout = () => {
@@ -38,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loadingUser, login, logout }}>
+    <AuthContext.Provider value={{ user, loadingUser, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

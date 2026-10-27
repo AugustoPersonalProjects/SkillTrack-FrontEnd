@@ -9,12 +9,11 @@ export default function Register() {
     email: "",
     senha: "",
     confirmarSenha: "",
-    perfil: "USER" // Valor padrão
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -35,13 +34,12 @@ export default function Register() {
         nome: formData.nome,
         email: formData.email,
         senha: formData.senha,
-        perfil: formData.perfil
       });
 
       if (result.success) {
         window.location.href = "/dashboard";
       } else {
-        setError(result.message);
+        setError(result.message || "Erro ao criar conta. Tente novamente.");
       }
     } catch (error) {
       setError("Erro ao criar conta. Tente novamente.");
@@ -50,7 +48,7 @@ export default function Register() {
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -174,24 +172,6 @@ export default function Register() {
                   required
                 />
               </div>
-            </div>
-
-            {/* Profile Type */}
-            <div>
-              <label htmlFor="perfil" className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Perfil
-              </label>
-              <select
-                id="perfil"
-                name="perfil"
-                value={formData.perfil}
-                onChange={handleChange}
-                className="block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
-              >
-                <option value="USER">Desenvolvedor</option>
-                <option value="ADMIN">Administrador</option>
-                <option value="MANAGER">Gerente</option>
-              </select>
             </div>
 
             {/* Terms Agreement */}
