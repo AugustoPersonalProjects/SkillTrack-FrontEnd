@@ -9,6 +9,7 @@ import {
   Award,
 } from "lucide-react";
 import { skillService } from "../services/skillService";
+import { categoryService } from "../services/categoryService";
 import {
   type Skill,
   type SkillRequest,
@@ -38,13 +39,15 @@ export default function Skills() {
   useEffect(() => {
     loadSkills();
     loadCategories();
-  }, []);
+  }, [user]);
 
   const loadSkills = async () => {
     try {
       setLoading(true);
       setError("");
-      const skillsData = await skillService.getSkills();
+      const skillsData = user?.id_usuario
+        ? await skillService.getUserSkills(user.id_usuario)
+        : [];
       setSkills(Array.isArray(skillsData) ? skillsData : []);
     } catch (error) {
       console.error("Erro ao carregar skills:", error);
@@ -59,8 +62,7 @@ export default function Skills() {
 
   const loadCategories = async () => {
     try {
-      const data = await skillService.getCategories();
-      console.log("Categorias carregadas:", data);
+      const data = await categoryService.getCategories();
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Erro ao carregar categorias:", err);
@@ -82,12 +84,20 @@ export default function Skills() {
       return;
     }
 
+    if (!user?.id_usuario) {
+      setError("Usuário não autenticado. Faça login novamente.");
+      return;
+    }
+
+    // a skill sempre pertence ao usuário logado
+    const skillData = { ...formData, userId: user.id_usuario };
+
     try {
       if (editingSkill) {
-        await skillService.updateSkill(editingSkill.id_skill, formData);
+        await skillService.updateSkill(editingSkill.id_skill, skillData);
         setError("Skill atualizada com sucesso!");
       } else {
-        await skillService.createSkill(formData);
+        await skillService.createSkill(skillData);
         setError("Skill criada com sucesso!");
       }
 

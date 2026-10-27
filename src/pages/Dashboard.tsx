@@ -126,8 +126,10 @@ export default function Dashboard() {
     }
   };
 
-  const getRecentActivities = () => {
-    const activities = [];
+  type Activity = { action: string; time: string; type: "success" | "info" | "warning" };
+
+  const getRecentActivities = (): Activity[] => {
+    const activities: Activity[] = [];
 
     skills.slice(0, 3).forEach((skill) => {
       if (skill.progress_history && skill.progress_history.length > 0) {

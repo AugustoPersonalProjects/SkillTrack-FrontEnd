@@ -44,29 +44,11 @@ export default function Goals() {
       setLoading(true);
       setError("");
 
-      console.log("🔄 Carregando metas para usuário:", user?.id_usuario);
+      const goalsData: Goal[] = user?.id_usuario
+        ? await goalService.getUserGoals(user.id_usuario)
+        : [];
 
-      let goalsData: Goal[] = [];
-
-      if (user?.id_usuario) {
-        try {
-          goalsData = await goalService.getUserGoals(user.id_usuario);
-          console.log("📊 Metas carregadas da API:", goalsData);
-        } catch (userError) {
-          console.warn("❌ Erro no endpoint de usuário, fallback:", userError);
-          const allGoals = await goalService.getGoals();
-          goalsData = Array.isArray(allGoals)
-            ? allGoals.filter((goal) => goal.user_id === user.id_usuario)
-            : [];
-        }
-      }
-
-      if (!Array.isArray(goalsData)) {
-        console.warn("⚠️ goalsData não é array, convertendo:", goalsData);
-        goalsData = [];
-      }
-
-      setGoals(goalsData);
+      setGoals(Array.isArray(goalsData) ? goalsData : []);
     } catch (error) {
       console.error("❌ Erro ao carregar metas:", error);
       setError("Erro ao carregar metas. Verifique o servidor.");
@@ -78,7 +60,9 @@ export default function Goals() {
 
   const loadSkills = async () => {
     try {
-      const skillsData = await skillService.getSkills();
+      const skillsData = user?.id_usuario
+        ? await skillService.getUserSkills(user.id_usuario)
+        : [];
       setSkills(Array.isArray(skillsData) ? skillsData : []);
     } catch (error) {
       console.error("Erro ao carregar skills:", error);
@@ -113,8 +97,6 @@ export default function Goals() {
         skill_id: formData.skillId,
         user_id: user.id_usuario,
       };
-
-      console.log("🎯 Criando meta:", goalData);
 
       await goalService.createGoal(goalData);
       setSuccess("Meta criada com sucesso!");
