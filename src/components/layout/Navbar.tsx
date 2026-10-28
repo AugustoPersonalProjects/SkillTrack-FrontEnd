@@ -1,5 +1,5 @@
 import { Menu, Bell, Search } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/useAuth";
 import { useEffect, useState, useRef } from "react";
 
 interface Notification {

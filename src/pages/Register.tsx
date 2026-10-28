@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 
 export default function Register() {
   const { register } = useAuth();
@@ -42,7 +42,7 @@ export default function Register() {
         setError(result.message || "Erro ao criar conta. Tente novamente.");
       }
     } catch {
-  setError("Erro ao criar conta. Tente novamente.");
+      setError("Erro ao criar conta. Tente novamente.");
     } finally {
       setIsLoading(false);
     }

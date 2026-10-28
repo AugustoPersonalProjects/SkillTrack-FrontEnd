@@ -7,7 +7,7 @@ import {
   Plus,
   ArrowRight,
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import { skillService } from "../services/skillService";
 import { goalService } from "../services/goalService";
 import { type Skill, type Goal, SkillLevel } from "../types/interfaces";

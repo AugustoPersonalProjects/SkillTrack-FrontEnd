@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 export default function Login() {
@@ -19,8 +19,9 @@ export default function Login() {
       await login(email, senha);
       window.location.href = "/dashboard";
     } catch (error: unknown) {
-      console.error("Erro ao criar meta:", error);
-      setError(getApiErrorMessage(error, "Erro ao criar meta"));
+      setError(getApiErrorMessage(error, "Erro ao fazer login. Tente novamente."));
+    } finally {
+      setIsLoading(false);
     }
   };
 

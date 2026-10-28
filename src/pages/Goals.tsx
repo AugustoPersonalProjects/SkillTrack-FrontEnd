@@ -12,7 +12,7 @@ import {
 import { goalService } from "../services/goalService";
 import { skillService } from "../services/skillService";
 import type { Goal, Skill } from "../types/interfaces";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 export default function Goals() {
@@ -126,8 +126,9 @@ export default function Goals() {
         setError("Erro ao marcar meta como concluída.");
       }
     } catch (error: unknown) {
-      console.error("Erro ao criar meta:", error);
-      setError(getApiErrorMessage(error, "Erro ao criar meta"));
+      console.error("Erro ao concluir meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao concluir meta"));
+      await loadGoals();
     }
   };
 
@@ -139,8 +140,8 @@ export default function Goals() {
       setSuccess("Meta excluída com sucesso!");
       await loadGoals();
     } catch (error: unknown) {
-      console.error("Erro ao criar meta:", error);
-      setError(getApiErrorMessage(error, "Erro ao criar meta"));
+      console.error("Erro ao excluir meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao excluir meta"));
     }
   };
 

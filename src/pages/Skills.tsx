@@ -16,7 +16,7 @@ import {
   type Category,
   SkillLevel,
 } from "../types/interfaces";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 export default function Skills() {
@@ -105,8 +105,8 @@ export default function Skills() {
       resetForm();
       await loadSkills();
     } catch (error: unknown) {
-      console.error("Erro ao criar meta:", error);
-      setError(getApiErrorMessage(error, "Erro ao criar meta"));
+      console.error("Erro ao salvar skill:", error);
+      setError(getApiErrorMessage(error, "Erro ao salvar skill"));
     }
   };
 
@@ -131,8 +131,8 @@ export default function Skills() {
       setError("Skill excluída com sucesso!");
       await loadSkills();
     } catch (error: unknown) {
-      console.error("Erro ao criar meta:", error);
-      setError(getApiErrorMessage(error, "Erro ao criar meta"));
+      console.error("Erro ao excluir skill:", error);
+      setError(getApiErrorMessage(error, "Erro ao excluir skill"));
     }
   };
 

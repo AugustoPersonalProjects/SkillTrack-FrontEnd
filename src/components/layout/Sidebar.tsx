@@ -1,6 +1,6 @@
 import { Home, Target, Star, LogOut, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/useAuth";
 
 export default function Sidebar() {
   const { logout, user } = useAuth();

@@ -1,19 +1,8 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { authService } from "../services/authService";
 import type { RegisterRequest, Usuario } from "../types/interfaces";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
-
-interface AuthContextType {
-  user: Usuario | null;
-  loadingUser: boolean;
-  login: (email: string, senha: string) => Promise<void>;
-  register: (
-    data: RegisterRequest,
-  ) => Promise<{ success: boolean; message?: string }>;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from "./useAuth";
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Usuario | null>(null);
@@ -38,8 +27,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(novoUsuario);
       return { success: true };
     } catch (error: unknown) {
-      console.error("Erro ao criar meta:", error);
-      setError(getApiErrorMessage(error, "Erro ao criar meta"));
+      return {
+        success: false,
+        message: getApiErrorMessage(error, "Erro ao criar conta. Tente novamente."),
+      };
     }
   };
 
@@ -55,11 +46,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context)
-    throw new Error("useAuth deve ser usado dentro de AuthProvider");
-  return context;
 };

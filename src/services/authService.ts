@@ -5,6 +5,7 @@ import type {
   RegisterRequest,
   Usuario,
 } from "../types/interfaces";
+import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 // Lê o id do usuário gravado no payload do JWT pelo backend (claim "id")
 const getUserIdFromToken = (token: string): number => {
@@ -35,11 +36,10 @@ export const authService = {
       }
 
       return await startSession(response.data.token);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logout();
       throw new Error(
-        error.response?.data?.message ||
-          "Falha no login. Verifique suas credenciais."
+        getApiErrorMessage(error, "Falha no login. Verifique suas credenciais.")
       );
     }
   },
@@ -51,12 +51,9 @@ export const authService = {
     try {
       const response = await api.post<LoginResponse>("/auth/register", userData);
       return await startSession(response.data.token);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logout();
-      const data = error.response?.data;
-      // erros de validação chegam como lista [{ campo, mensagem }]
-      const message = Array.isArray(data) ? data[0]?.mensagem : data?.message;
-      throw new Error(message || "Falha no registro de usuário.");
+      throw new Error(getApiErrorMessage(error, "Falha no registro de usuário."));
     }
   },
 
