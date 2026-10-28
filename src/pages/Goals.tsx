@@ -13,6 +13,7 @@ import { goalService } from "../services/goalService";
 import { skillService } from "../services/skillService";
 import type { Goal, Skill } from "../types/interfaces";
 import { useAuth } from "../contexts/AuthContext";
+import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 export default function Goals() {
   const { user, loadingUser } = useAuth();
@@ -102,35 +103,33 @@ export default function Goals() {
       setSuccess("Meta criada com sucesso!");
       resetForm();
       await loadGoals();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao criar meta:", error);
-      setError(error.response?.data?.message || "Erro ao criar meta");
+      setError(getApiErrorMessage(error, "Erro ao criar meta"));
     }
   };
 
   const handleComplete = async (id: number) => {
-  try {
-    setError("");
-    setSuccess("");
-    setGoals((prev) =>
-      prev.map((goal) =>
-        goal.id_goal === id ? { ...goal, completed: true } : goal
-      )
-    );
-    const success = await goalService.completeGoal(id);
-    if (success) {
-      setSuccess("Meta marcada como concluída!");
-      await loadGoals();
-    } else {
-      setError("Erro ao marcar meta como concluída.");
+    try {
+      setError("");
+      setSuccess("");
+      setGoals((prev) =>
+        prev.map((goal) =>
+          goal.id_goal === id ? { ...goal, completed: true } : goal,
+        ),
+      );
+      const success = await goalService.completeGoal(id);
+      if (success) {
+        setSuccess("Meta marcada como concluída!");
+        await loadGoals();
+      } else {
+        setError("Erro ao marcar meta como concluída.");
+      }
+    } catch (error: unknown) {
+      console.error("Erro ao criar meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao criar meta"));
     }
-  } catch (error: any) {
-    console.error("Erro ao completar meta:", error);
-    setError(error.response?.data?.message || "Erro ao completar meta");
-    await loadGoals();
-  }
-};
-
+  };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir esta meta?")) return;
@@ -139,9 +138,9 @@ export default function Goals() {
       await goalService.deleteGoal(id);
       setSuccess("Meta excluída com sucesso!");
       await loadGoals();
-    } catch (error: any) {
-      console.error("Erro ao excluir meta:", error);
-      setError(error.response?.data?.message || "Erro ao excluir meta");
+    } catch (error: unknown) {
+      console.error("Erro ao criar meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao criar meta"));
     }
   };
 
@@ -172,7 +171,7 @@ export default function Goals() {
     ? goals.filter(
         (goal) =>
           goal?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          goal?.description?.toLowerCase().includes(searchTerm.toLowerCase())
+          goal?.description?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     : [];
 
@@ -400,8 +399,8 @@ export default function Goals() {
                   goal.completed
                     ? "border-l-green-500 bg-green-50/50"
                     : isOverdue
-                    ? "border-l-red-500 bg-red-50/50"
-                    : "border-l-blue-500"
+                      ? "border-l-red-500 bg-red-50/50"
+                      : "border-l-blue-500"
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -436,8 +435,8 @@ export default function Goals() {
                           isOverdue
                             ? "text-red-600 font-medium"
                             : daysUntil < 7
-                            ? "text-orange-600"
-                            : "text-gray-500"
+                              ? "text-orange-600"
+                              : "text-gray-500"
                         }`}
                       >
                         <Clock className="w-4 h-4" />
@@ -445,8 +444,8 @@ export default function Goals() {
                           {goal.completed
                             ? "Concluída"
                             : isOverdue
-                            ? `Atrasada ${Math.abs(daysUntil)} dias`
-                            : `${daysUntil} dias restantes`}
+                              ? `Atrasada ${Math.abs(daysUntil)} dias`
+                              : `${daysUntil} dias restantes`}
                         </span>
                       </div>
                     </div>

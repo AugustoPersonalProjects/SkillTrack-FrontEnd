@@ -41,8 +41,8 @@ export default function Register() {
       } else {
         setError(result.message || "Erro ao criar conta. Tente novamente.");
       }
-    } catch (error) {
-      setError("Erro ao criar conta. Tente novamente.");
+    } catch {
+  setError("Erro ao criar conta. Tente novamente.");
     } finally {
       setIsLoading(false);
     }

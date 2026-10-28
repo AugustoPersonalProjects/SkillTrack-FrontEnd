@@ -17,6 +17,7 @@ import {
   SkillLevel,
 } from "../types/interfaces";
 import { useAuth } from "../contexts/AuthContext";
+import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 export default function Skills() {
   const { user } = useAuth();
@@ -52,7 +53,7 @@ export default function Skills() {
     } catch (error) {
       console.error("Erro ao carregar skills:", error);
       setError(
-        "Erro ao carregar skills. Verifique se o servidor está rodando."
+        "Erro ao carregar skills. Verifique se o servidor está rodando.",
       );
       setSkills([]);
     } finally {
@@ -103,9 +104,9 @@ export default function Skills() {
 
       resetForm();
       await loadSkills();
-    } catch (error: any) {
-      console.error("Erro ao salvar skill:", error);
-      setError(error.response?.data?.message || "Erro ao salvar skill");
+    } catch (error: unknown) {
+      console.error("Erro ao criar meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao criar meta"));
     }
   };
 
@@ -129,9 +130,9 @@ export default function Skills() {
       await skillService.deleteSkill(id);
       setError("Skill excluída com sucesso!");
       await loadSkills();
-    } catch (error: any) {
-      console.error("Erro ao excluir skill:", error);
-      setError(error.response?.data?.message || "Erro ao excluir skill");
+    } catch (error: unknown) {
+      console.error("Erro ao criar meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao criar meta"));
     }
   };
 
@@ -179,7 +180,7 @@ export default function Skills() {
   };
 
   const filteredSkills = skills.filter((skill) =>
-    skill.name.toLowerCase().includes(searchTerm.toLowerCase())
+    skill.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (loading) {
@@ -307,7 +308,7 @@ export default function Skills() {
                       >
                         {category.name}
                       </option>
-                    )
+                    ),
                   )}
                 </select>
               </div>
@@ -372,7 +373,7 @@ export default function Skills() {
                 </h3>
                 <p className="text-gray-600 text-sm">
                   {(Array.isArray(categories) ? categories : []).find(
-                    (cat) => cat.id_category === skill.category_id
+                    (cat) => cat.id_category === skill.category_id,
                   )?.name || "Sem categoria"}
                 </p>
                 {skill.description && (
@@ -383,7 +384,7 @@ export default function Skills() {
               </div>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(
-                  skill.level
+                  skill.level,
                 )}`}
               >
                 {getLevelText(skill.level)}

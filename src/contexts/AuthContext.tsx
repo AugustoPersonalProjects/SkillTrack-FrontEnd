@@ -1,12 +1,15 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "../services/authService";
 import type { RegisterRequest, Usuario } from "../types/interfaces";
+import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 interface AuthContextType {
   user: Usuario | null;
   loadingUser: boolean;
   login: (email: string, senha: string) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<{ success: boolean; message?: string }>;
+  register: (
+    data: RegisterRequest,
+  ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
 }
 
@@ -34,8 +37,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const novoUsuario = await authService.register(data);
       setUser(novoUsuario);
       return { success: true };
-    } catch (error: any) {
-      return { success: false, message: error.message };
+    } catch (error: unknown) {
+      console.error("Erro ao criar meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao criar meta"));
     }
   };
 
@@ -45,7 +49,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loadingUser, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, loadingUser, login, register, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

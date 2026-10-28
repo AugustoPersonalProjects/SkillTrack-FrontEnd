@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 
 export default function Login() {
   const { login } = useAuth();
@@ -17,11 +18,9 @@ export default function Login() {
     try {
       await login(email, senha);
       window.location.href = "/dashboard";
-    } catch (err: any) {
-      console.error("Erro ao fazer login:", err);
-      setError(err.message || "Erro ao fazer login. Tente novamente.");
-    } finally {
-      setIsLoading(false);
+    } catch (error: unknown) {
+      console.error("Erro ao criar meta:", error);
+      setError(getApiErrorMessage(error, "Erro ao criar meta"));
     }
   };
 
@@ -31,8 +30,18 @@ export default function Login() {
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg mb-4">
-            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <svg
+              className="h-8 w-8 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">SkillTrack</h2>
@@ -50,7 +59,10 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Email
               </label>
               <input
@@ -66,7 +78,10 @@ export default function Login() {
 
             {/* Senha */}
             <div>
-              <label htmlFor="senha" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="senha"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Senha
               </label>
               <input
@@ -93,7 +108,10 @@ export default function Login() {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Não tem uma conta?{" "}
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200">
+              <Link
+                to="/register"
+                className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+              >
                 Cadastre-se
               </Link>
             </p>
