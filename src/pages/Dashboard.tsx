@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   TrendingUp,
-  Users,
+  CheckCircle2,
   Target,
   Award,
   Plus,
@@ -12,6 +12,8 @@ import { skillService } from "../services/skillService";
 import { goalService } from "../services/goalService";
 import { type Skill, type Goal, SkillLevel } from "../types/interfaces";
 import { useNavigate } from "react-router-dom";
+import { parseLocalDate } from "../utils/date";
+import { getLatestProgress, getLatestPercentage } from "../utils/progress";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -23,22 +25,8 @@ export default function Dashboard() {
     totalSkills: 0,
     activeGoals: 0,
     averageProgress: 0,
-    consecutiveDays: 0,
+    completedGoals: 0,
   });
-
-  // Função global para criar notificações dinâmicas
-  const addNotification = (message: string, type: "goal" | "skill" | "info") => {
-    const existing = JSON.parse(localStorage.getItem("notifications") || "[]");
-    const newNotification = {
-      id: Date.now(),
-      message,
-      time: "Agora mesmo",
-      type,
-      read: false,
-    };
-    const updated = [newNotification, ...existing];
-    localStorage.setItem("notifications", JSON.stringify(updated));
-  };
 
   useEffect(() => {
     loadDashboardData();
@@ -52,38 +40,19 @@ export default function Dashboard() {
         const userSkills = await skillService.getUserSkills(user.id_usuario);
         const userGoals = await goalService.getUserGoals(user.id_usuario);
 
-        // Detecta novas skills/metas e cria notificações
-        const oldSkills = JSON.parse(localStorage.getItem("skills_cache") || "[]");
-        const oldGoals = JSON.parse(localStorage.getItem("goals_cache") || "[]");
-
-        if (userSkills.length > oldSkills.length) {
-          addNotification("Nova skill adicionada!", "skill");
-        }
-        if (userGoals.length > oldGoals.length) {
-          addNotification("Nova meta criada!", "goal");
-        }
-
-        // Detecta metas concluídas
-        const completedNow = userGoals.filter((g) => g.completed && !oldGoals.some((o: Goal) => o.id_goal === g.id_goal && o.completed));
-        completedNow.forEach((g) => addNotification(`Meta concluída: ${g.description}`, "goal"));
-
-        // Atualiza cache local
-        localStorage.setItem("skills_cache", JSON.stringify(userSkills));
-        localStorage.setItem("goals_cache", JSON.stringify(userGoals));
-
         setSkills(userSkills);
         setGoals(userGoals);
 
         const totalSkills = userSkills.length;
         const activeGoals = userGoals.filter((g) => !g.completed).length;
         const averageProgress = calculateAverageProgress(userSkills);
-        const consecutiveDays = calculateConsecutiveDays(userSkills);
+        const completedGoals = userGoals.filter((g) => g.completed).length;
 
         setStats({
           totalSkills,
           activeGoals,
           averageProgress,
-          consecutiveDays,
+          completedGoals,
         });
       }
     } catch (error) {
@@ -96,19 +65,12 @@ export default function Dashboard() {
   const calculateAverageProgress = (skills: Skill[]): number => {
     if (skills.length === 0) return 0;
 
-    const totalProgress = skills.reduce((sum, skill) => {
-      const latestProgress =
-        skill.progress_history && skill.progress_history.length > 0
-          ? skill.progress_history[skill.progress_history.length - 1]?.percentage
-          : 0;
-      return sum + (latestProgress || 0);
-    }, 0);
+    const totalProgress = skills.reduce(
+      (sum, skill) => sum + getLatestPercentage(skill),
+      0
+    );
 
     return Math.round(totalProgress / skills.length);
-  };
-
-  const calculateConsecutiveDays = (skills: Skill[]): number => {
-    return Math.min(skills.length * 2, 30); // Simulação simples
   };
 
   const getLevelText = (level: SkillLevel): string => {
@@ -131,12 +93,12 @@ export default function Dashboard() {
   const getRecentActivities = (): Activity[] => {
     const activities: Activity[] = [];
 
-    skills.slice(0, 3).forEach((skill) => {
-      if (skill.progress_history && skill.progress_history.length > 0) {
-        const latestProgress = skill.progress_history[skill.progress_history.length - 1];
+    skills.forEach((skill) => {
+      const latestProgress = getLatestProgress(skill);
+      if (latestProgress) {
         activities.push({
           action: `Progresso em ${skill.name}: ${latestProgress.percentage}%`,
-          time: formatTimeAgo(latestProgress.date),
+          time: latestProgress.date ? formatDaysAgo(latestProgress.date) : "",
           type: "success" as const,
         });
       }
@@ -144,15 +106,19 @@ export default function Dashboard() {
 
     goals.slice(0, 2).forEach((goal) => {
       activities.push({
-        action: `Meta: ${goal.description}`,
-        time: formatTimeAgo(goal.deadline),
+        action: `Meta: ${goal.title}`,
+        time: goal.completed
+          ? "Concluída"
+          : goal.deadline
+          ? `Prazo: ${parseLocalDate(goal.deadline).toLocaleDateString("pt-BR")}`
+          : "Sem prazo",
         type: goal.completed ? "success" : "info",
       });
     });
 
-    while (activities.length < 4) {
+    if (activities.length === 0) {
       activities.push({
-        action: "Bem-vindo ao SkillTrack!",
+        action: "Bem-vindo ao SkillTrack! Cadastre sua primeira skill.",
         time: "Agora mesmo",
         type: "info" as const,
       });
@@ -161,25 +127,25 @@ export default function Dashboard() {
     return activities.slice(0, 4);
   };
 
-  const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+  // As datas de progresso não têm horário, então a diferença é contada em dias
+  const formatDaysAgo = (dateString: string): string => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffInDays = Math.round(
+      (today.getTime() - parseLocalDate(dateString).getTime()) / (1000 * 60 * 60 * 24)
+    );
 
-    if (diffInHours < 1) return "Agora mesmo";
-    if (diffInHours < 24) return `${diffInHours} horas atrás`;
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} dias atrás`;
-    return `${Math.floor(diffInHours / 168)} semanas atrás`;
+    if (diffInDays <= 0) return "Hoje";
+    if (diffInDays === 1) return "Ontem";
+    if (diffInDays < 7) return `${diffInDays} dias atrás`;
+    return `${Math.floor(diffInDays / 7)} semanas atrás`;
   };
 
   const statsData = [
     {
       title: "Total de Skills",
       value: stats.totalSkills.toString(),
-      change:
-        skills.length > 0
-          ? "+" + Math.floor(skills.length / 2) + " este mês"
-          : "Comece agora!",
+      change: skills.length > 0 ? "Ver skills" : "Comece agora!",
       icon: <Award className="w-6 h-6" />,
       color: "bg-blue-500",
       trend: skills.length > 0 ? "up" : "neutral",
@@ -188,10 +154,7 @@ export default function Dashboard() {
     {
       title: "Metas Ativas",
       value: stats.activeGoals.toString(),
-      change:
-        goals.length > 0
-          ? "+" + Math.floor(goals.length / 3) + " esta semana"
-          : "Defina metas!",
+      change: goals.length > 0 ? `${goals.length} no total` : "Defina metas!",
       icon: <Target className="w-6 h-6" />,
       color: "bg-green-500",
       trend: goals.length > 0 ? "up" : "neutral",
@@ -202,7 +165,7 @@ export default function Dashboard() {
       value: `${stats.averageProgress}%`,
       change:
         stats.averageProgress > 0
-          ? `+${Math.floor(stats.averageProgress / 10)}% este mês`
+          ? "Último registro de cada skill"
           : "Inicie seu progresso!",
       icon: <TrendingUp className="w-6 h-6" />,
       color: "bg-purple-500",
@@ -210,14 +173,14 @@ export default function Dashboard() {
       onClick: () => navigate("/skills"),
     },
     {
-      title: "Dias Consecutivos",
-      value: stats.consecutiveDays.toString(),
+      title: "Metas Concluídas",
+      value: stats.completedGoals.toString(),
       change:
-        stats.consecutiveDays > 7 ? "Recorde pessoal!" : "Mantenha o ritmo!",
-      icon: <Users className="w-6 h-6" />,
+        stats.completedGoals > 0 ? "Continue assim!" : "Conclua sua primeira meta!",
+      icon: <CheckCircle2 className="w-6 h-6" />,
       color: "bg-orange-500",
-      trend: stats.consecutiveDays > 0 ? "up" : "neutral",
-      onClick: () => navigate("/skills"),
+      trend: stats.completedGoals > 0 ? "up" : "neutral",
+      onClick: () => navigate("/goals"),
     },
   ];
 
@@ -249,7 +212,7 @@ export default function Dashboard() {
     {
       label: "Minhas Skills",
       description: "Visualize todas as habilidades",
-      icon: <Users className="w-6 h-6" />,
+      icon: <Award className="w-6 h-6" />,
       color: "bg-orange-50 border-orange-200 text-orange-900 hover:bg-orange-100",
       iconColor: "text-orange-600",
       onClick: () => navigate("/skills"),
@@ -421,12 +384,12 @@ export default function Dashboard() {
                   <div
                     className="h-2 rounded-full bg-blue-500 transition-all"
                     style={{
-                      width: `${skill.progress_history?.at(-1)?.percentage || 0}%`,
+                      width: `${getLatestPercentage(skill)}%`,
                     }}
                   ></div>
                 </div>
                 <p className="text-xs text-gray-600 mt-2">
-                  Progresso: {skill.progress_history?.at(-1)?.percentage || 0}%
+                  Progresso: {getLatestPercentage(skill)}%
                 </p>
               </div>
             ))}

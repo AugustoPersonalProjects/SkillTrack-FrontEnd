@@ -1,6 +1,7 @@
 import { Menu, Bell, Search } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth";
 import { useEffect, useState, useRef } from "react";
+import { NOTIFICATIONS_EVENT } from "../../utils/notificationHelper";
 
 interface Notification {
   id: number;
@@ -34,6 +35,11 @@ export default function Navbar() {
       localStorage.setItem("notifications", JSON.stringify(initial));
       setNotifications(initial);
     }
+
+    const reload = () =>
+      setNotifications(JSON.parse(localStorage.getItem("notifications") || "[]"));
+    window.addEventListener(NOTIFICATIONS_EVENT, reload);
+    return () => window.removeEventListener(NOTIFICATIONS_EVENT, reload);
   }, []);
 
   // Fechar popover clicando fora

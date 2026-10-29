@@ -60,6 +60,8 @@ export const authService = {
   logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    // as notificações são do usuário logado e não devem aparecer para o próximo
+    localStorage.removeItem("notifications");
   },
 
   getCurrentUser(): Usuario | null {
