@@ -71,6 +71,17 @@ export interface ProgressRequest {
   date?: string;
 }
 
+// Resposta do GET /dashboard: skillNames e skillProgressValues são alinhadas pelo índice
+export interface DashboardData {
+  totalSkills: number;
+  totalGoals: number;
+  averageProgress: number;
+  skillNames: string[];
+  skillProgressValues: number[];
+  goals: Goal[];
+  progressList: Progress[];
+}
+
 // USUÁRIO / AUTENTICAÇÃO
 export interface Usuario {
   id_usuario: number;

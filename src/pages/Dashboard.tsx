@@ -1,398 +1,215 @@
-import { useState, useEffect } from "react";
-import {
-  TrendingUp,
-  CheckCircle2,
-  Target,
-  Award,
-  Plus,
-  ArrowRight,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, Layers, Target, TrendingUp, CircleDashed, Plus } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
+import { dashboardService } from "../services/dashboardService";
 import { skillService } from "../services/skillService";
-import { goalService } from "../services/goalService";
-import { type Skill, type Goal, SkillLevel } from "../types/interfaces";
-import { useNavigate } from "react-router-dom";
-import { parseLocalDate } from "../utils/date";
-import { getLatestProgress, getLatestPercentage } from "../utils/progress";
+import type { DashboardData, Goal } from "../types/interfaces";
+import { parseLocalDate, todayLocalISO } from "../utils/date";
+import PageHeader from "../components/ui/PageHeader";
+import Spinner from "../components/ui/Spinner";
+import Alert from "../components/ui/Alert";
+import EmptyState from "../components/ui/EmptyState";
+import { buttonPrimary, cardClass } from "../components/ui/styles";
+
+const formatDate = (date: string) => parseLocalDate(date).toLocaleDateString("pt-BR");
+
+function StatCard({ label, value, hint, icon: Icon }: { label: string; value: string; hint: string; icon: LucideIcon }) {
+  return (
+    <div className={`${cardClass} p-5`}>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
+        <Icon className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+      </div>
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{value}</p>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
+    </div>
+  );
+}
+
+function SectionCard({ title, link, children }: { title: string; link?: { to: string; label: string }; children: React.ReactNode }) {
+  return (
+    <section className={cardClass}>
+      <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3.5 dark:border-zinc-800">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
+        {link && (
+          <Link
+            to={link.to}
+            className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            {link.label} <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        )}
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
+function GoalStatus({ goal }: { goal: Goal }) {
+  if (goal.completed) {
+    return <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Concluída</span>;
+  }
+  if (goal.deadline && goal.deadline < todayLocalISO()) {
+    return <span className="text-xs font-medium text-red-600 dark:text-red-400">Atrasada</span>;
+  }
+  return <span className="text-xs text-zinc-500 dark:text-zinc-400">Em andamento</span>;
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [skillNames, setSkillNames] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalSkills: 0,
-    activeGoals: 0,
-    averageProgress: 0,
-    completedGoals: 0,
-  });
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [user]);
+  const loadDashboard = useCallback(async () => {
+    if (!user?.id_usuario) return;
 
-  const loadDashboardData = async () => {
     try {
       setLoading(true);
-
-      if (user?.id_usuario) {
-        const userSkills = await skillService.getUserSkills(user.id_usuario);
-        const userGoals = await goalService.getUserGoals(user.id_usuario);
-
-        setSkills(userSkills);
-        setGoals(userGoals);
-
-        const totalSkills = userSkills.length;
-        const activeGoals = userGoals.filter((g) => !g.completed).length;
-        const averageProgress = calculateAverageProgress(userSkills);
-        const completedGoals = userGoals.filter((g) => g.completed).length;
-
-        setStats({
-          totalSkills,
-          activeGoals,
-          averageProgress,
-          completedGoals,
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao carregar dados do dashboard:", error);
+      setError("");
+      // as estatísticas vêm prontas da API; as skills só são usadas para exibir o nome nos registros
+      const [dashboard, skills] = await Promise.all([
+        dashboardService.getDashboard(),
+        skillService.getUserSkills(user.id_usuario),
+      ]);
+      setData(dashboard);
+      setSkillNames(new Map(skills.map((s) => [s.id_skill, s.name])));
+    } catch (err) {
+      console.error("Erro ao carregar o dashboard:", err);
+      setError("Não foi possível carregar o dashboard. Tente novamente em instantes.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id_usuario]);
 
-  const calculateAverageProgress = (skills: Skill[]): number => {
-    if (skills.length === 0) return 0;
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
-    const totalProgress = skills.reduce(
-      (sum, skill) => sum + getLatestPercentage(skill),
-      0
-    );
+  if (loading) return <Spinner />;
 
-    return Math.round(totalProgress / skills.length);
-  };
+  const firstName = user?.nome?.split(" ")[0] || "";
 
-  const getLevelText = (level: SkillLevel): string => {
-    switch (level) {
-      case SkillLevel.BEGINNER:
-        return "Iniciante";
-      case SkillLevel.INTERMEDIATE:
-        return "Intermediário";
-      case SkillLevel.ADVANCED:
-        return "Avançado";
-      case SkillLevel.EXPERT:
-        return "Especialista";
-      default:
-        return level;
-    }
-  };
-
-  type Activity = { action: string; time: string; type: "success" | "info" | "warning" };
-
-  const getRecentActivities = (): Activity[] => {
-    const activities: Activity[] = [];
-
-    skills.forEach((skill) => {
-      const latestProgress = getLatestProgress(skill);
-      if (latestProgress) {
-        activities.push({
-          action: `Progresso em ${skill.name}: ${latestProgress.percentage}%`,
-          time: latestProgress.date ? formatDaysAgo(latestProgress.date) : "",
-          type: "success" as const,
-        });
-      }
-    });
-
-    goals.slice(0, 2).forEach((goal) => {
-      activities.push({
-        action: `Meta: ${goal.title}`,
-        time: goal.completed
-          ? "Concluída"
-          : goal.deadline
-          ? `Prazo: ${parseLocalDate(goal.deadline).toLocaleDateString("pt-BR")}`
-          : "Sem prazo",
-        type: goal.completed ? "success" : "info",
-      });
-    });
-
-    if (activities.length === 0) {
-      activities.push({
-        action: "Bem-vindo ao SkillTrack! Cadastre sua primeira skill.",
-        time: "Agora mesmo",
-        type: "info" as const,
-      });
-    }
-
-    return activities.slice(0, 4);
-  };
-
-  // As datas de progresso não têm horário, então a diferença é contada em dias
-  const formatDaysAgo = (dateString: string): string => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diffInDays = Math.round(
-      (today.getTime() - parseLocalDate(dateString).getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffInDays <= 0) return "Hoje";
-    if (diffInDays === 1) return "Ontem";
-    if (diffInDays < 7) return `${diffInDays} dias atrás`;
-    return `${Math.floor(diffInDays / 7)} semanas atrás`;
-  };
-
-  const statsData = [
-    {
-      title: "Total de Skills",
-      value: stats.totalSkills.toString(),
-      change: skills.length > 0 ? "Ver skills" : "Comece agora!",
-      icon: <Award className="w-6 h-6" />,
-      color: "bg-blue-500",
-      trend: skills.length > 0 ? "up" : "neutral",
-      onClick: () => navigate("/skills"),
-    },
-    {
-      title: "Metas Ativas",
-      value: stats.activeGoals.toString(),
-      change: goals.length > 0 ? `${goals.length} no total` : "Defina metas!",
-      icon: <Target className="w-6 h-6" />,
-      color: "bg-green-500",
-      trend: goals.length > 0 ? "up" : "neutral",
-      onClick: () => navigate("/goals"),
-    },
-    {
-      title: "Progresso Médio",
-      value: `${stats.averageProgress}%`,
-      change:
-        stats.averageProgress > 0
-          ? "Último registro de cada skill"
-          : "Inicie seu progresso!",
-      icon: <TrendingUp className="w-6 h-6" />,
-      color: "bg-purple-500",
-      trend: stats.averageProgress > 0 ? "up" : "neutral",
-      onClick: () => navigate("/skills"),
-    },
-    {
-      title: "Metas Concluídas",
-      value: stats.completedGoals.toString(),
-      change:
-        stats.completedGoals > 0 ? "Continue assim!" : "Conclua sua primeira meta!",
-      icon: <CheckCircle2 className="w-6 h-6" />,
-      color: "bg-orange-500",
-      trend: stats.completedGoals > 0 ? "up" : "neutral",
-      onClick: () => navigate("/goals"),
-    },
-  ];
-
-  const quickActions = [
-    {
-      label: "Nova Skill",
-      description: "Adicione uma nova habilidade",
-      icon: <Award className="w-6 h-6" />,
-      color: "bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100",
-      iconColor: "text-blue-600",
-      onClick: () => navigate("/skills"),
-    },
-    {
-      label: "Nova Meta",
-      description: "Defina um novo objetivo",
-      icon: <Target className="w-6 h-6" />,
-      color: "bg-green-50 border-green-200 text-green-900 hover:bg-green-100",
-      iconColor: "text-green-600",
-      onClick: () => navigate("/goals"),
-    },
-    {
-      label: "Ver Progresso",
-      description: "Acompanhe sua evolução",
-      icon: <TrendingUp className="w-6 h-6" />,
-      color: "bg-purple-50 border-purple-200 text-purple-900 hover:bg-purple-100",
-      iconColor: "text-purple-600",
-      onClick: () => navigate("/skills"),
-    },
-    {
-      label: "Minhas Skills",
-      description: "Visualize todas as habilidades",
-      icon: <Award className="w-6 h-6" />,
-      color: "bg-orange-50 border-orange-200 text-orange-900 hover:bg-orange-100",
-      iconColor: "text-orange-600",
-      onClick: () => navigate("/skills"),
-    },
-  ];
-
-  if (loading) {
+  if (error || !data) {
     return (
-      <div className="space-y-6 text-center">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Carregando...
-        </h1>
-        <p className="text-gray-600 text-lg">Preparando seu dashboard</p>
-        <div className="flex justify-center mt-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+      <div className="space-y-6">
+        <PageHeader title="Visão geral" />
+        <Alert message={{ type: "error", text: error || "Dados indisponíveis." }} />
       </div>
     );
   }
 
+  const skillsProgress = data.skillNames
+    .map((name, i) => ({ name, value: Math.round(data.skillProgressValues[i] ?? 0) }))
+    .sort((a, b) => b.value - a.value);
+  const skillsWithoutProgress = skillsProgress.filter((s) => s.value === 0).length;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Bem-vindo de volta, {user?.nome || "Usuário"}! 🚀
-        </h1>
-        <p className="text-gray-600 text-lg">
-          {skills.length > 0
-            ? `Você está evoluindo em ${skills.length} habilidades`
-            : "Comece sua jornada de aprendizado"}
-        </p>
+      <PageHeader
+        title="Visão geral"
+        description={firstName ? `Olá, ${firstName}. Este é o resumo da sua evolução.` : "Resumo da sua evolução."}
+      />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Skills" value={String(data.totalSkills)} hint="Habilidades cadastradas" icon={Layers} />
+        <StatCard label="Metas" value={String(data.totalGoals)} hint="Metas cadastradas" icon={Target} />
+        <StatCard
+          label="Progresso médio"
+          value={`${Math.round(data.averageProgress)}%`}
+          hint="Média de todos os registros"
+          icon={TrendingUp}
+        />
+        <StatCard
+          label="Sem progresso"
+          value={String(skillsWithoutProgress)}
+          hint="Skills ainda sem registro"
+          icon={CircleDashed}
+        />
       </div>
 
-      {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat, i) => (
-          <div
-            key={i}
-            onClick={stat.onClick}
-            className="bg-white rounded-2xl p-6 shadow-lg border hover:shadow-xl transition-all duration-300 cursor-pointer"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-xl ${stat.color} text-white`}>
-                {stat.icon}
-              </div>
-              <span
-                className={`text-sm ${
-                  stat.trend === "up"
-                    ? "text-green-500"
-                    : stat.trend === "down"
-                    ? "text-red-500"
-                    : "text-gray-500"
-                }`}
-              >
-                {stat.change}
-              </span>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {stat.value}
-            </h3>
-            <p className="text-gray-600">{stat.title}</p>
+      {data.totalSkills === 0 ? (
+        <EmptyState
+          icon={Layers}
+          title="Nenhuma skill cadastrada"
+          description="Cadastre sua primeira skill para começar a acompanhar o seu progresso."
+          action={
+            <Link to="/skills" className={buttonPrimary}>
+              <Plus className="h-4 w-4" /> Nova skill
+            </Link>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <SectionCard title="Progresso por skill" link={{ to: "/skills", label: "Ver skills" }}>
+              <ul className="space-y-4">
+                {skillsProgress.map((skill, i) => (
+                  <li key={`${skill.name}-${i}`}>
+                    <div className="mb-1.5 flex items-center justify-between text-sm">
+                      <span className="truncate text-zinc-700 dark:text-zinc-300">{skill.name}</span>
+                      <span className="ml-4 font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+                        {skill.value}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800">
+                      <div className="h-1.5 rounded-full bg-emerald-600" style={{ width: `${skill.value}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
           </div>
-        ))}
-      </div>
 
-      {/* Atividades + Ações rápidas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Atividades Recentes */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-900">
-              Atividades Recentes
-            </h3>
-            <button
-              onClick={() => navigate("/skills")}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
-            >
-              Ver todas <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {getRecentActivities().map((a, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    a.type === "success"
-                      ? "bg-green-500"
-                      : a.type === "warning"
-                      ? "bg-yellow-500"
-                      : "bg-blue-500"
-                  }`}
-                ></div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{a.action}</p>
-                  <p className="text-sm text-gray-500">{a.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          <div className="space-y-6 lg:col-span-2">
+            <SectionCard title="Próximas metas" link={{ to: "/goals", label: "Ver metas" }}>
+              {data.goals.length === 0 ? (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Nenhuma meta cadastrada.</p>
+              ) : (
+                <ul className="-my-2 divide-y divide-zinc-100 dark:divide-zinc-800">
+                  {data.goals.map((goal) => (
+                    <li key={goal.id_goal} className="flex items-center justify-between gap-4 py-2.5">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{goal.title}</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {goal.deadline ? `Prazo ${formatDate(goal.deadline)}` : "Sem prazo"}
+                        </p>
+                      </div>
+                      <GoalStatus goal={goal} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SectionCard>
 
-        {/* Ações Rápidas */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
-            Ações Rápidas
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {quickActions.map((a, i) => (
-              <button
-                key={i}
-                onClick={a.onClick}
-                className={`p-4 rounded-xl border transition-all duration-200 ${a.color}`}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`p-2 rounded-lg ${a.iconColor} bg-white/50`}>
-                    {a.icon}
-                  </div>
-                  <Plus className="w-4 h-4 text-gray-400" />
-                </div>
-                <p className="font-semibold text-current mb-1">{a.label}</p>
-                <p className="text-xs text-gray-600">{a.description}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Skills em destaque */}
-      {skills.length > 0 && (
-        <div className="bg-white rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-900">
-              Suas Skills em Destaque
-            </h3>
-            <button
-              onClick={() => navigate("/skills")}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
-            >
-              Ver todas <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {skills.slice(0, 3).map((skill) => (
-              <div
-                key={skill.id_skill}
-                className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors border cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-gray-900">{skill.name}</h4>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      skill.level === SkillLevel.BEGINNER
-                        ? "bg-yellow-100 text-yellow-800"
-                        : skill.level === SkillLevel.INTERMEDIATE
-                        ? "bg-blue-100 text-blue-800"
-                        : skill.level === SkillLevel.ADVANCED
-                        ? "bg-green-100 text-green-800"
-                        : "bg-purple-100 text-purple-800"
-                    }`}
-                  >
-                    {getLevelText(skill.level)}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-blue-500 transition-all"
-                    style={{
-                      width: `${getLatestPercentage(skill)}%`,
-                    }}
-                  ></div>
-                </div>
-                <p className="text-xs text-gray-600 mt-2">
-                  Progresso: {getLatestPercentage(skill)}%
+            <SectionCard title="Registros recentes">
+              {data.progressList.length === 0 ? (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Nenhum progresso registrado. Registre pelo card da skill na página de Skills.
                 </p>
-              </div>
-            ))}
+              ) : (
+                <ul className="-my-2 divide-y divide-zinc-100 dark:divide-zinc-800">
+                  {data.progressList.map((progress) => (
+                    <li key={progress.id_progress} className="flex items-center justify-between gap-4 py-2.5">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          {skillNames.get(progress.skill_id) ?? "Skill"}
+                        </p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {progress.date ? formatDate(progress.date) : "Sem data"}
+                        </p>
+                      </div>
+                      <span className="text-sm font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+                        {progress.percentage}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SectionCard>
           </div>
         </div>
       )}
