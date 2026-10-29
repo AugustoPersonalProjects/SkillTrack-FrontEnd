@@ -5,11 +5,16 @@ import { skillService } from "../services/skillService";
 import type { Goal, Skill } from "../types/interfaces";
 import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
-import { parseLocalDate, todayLocalISO } from "../utils/date";
+import { todayLocalISO } from "../utils/date";
+import { describeDeadline, getGoalStatus, GOAL_STATUS_BADGE, type GoalStatus } from "../utils/goalStatus";
 import PageHeader from "../components/ui/PageHeader";
 import Alert, { type AlertMessage } from "../components/ui/Alert";
 import EmptyState from "../components/ui/EmptyState";
 import Spinner from "../components/ui/Spinner";
+import Select from "../components/ui/Select";
+import Badge from "../components/ui/Badge";
+import Dialog, { DialogFooter } from "../components/ui/Dialog";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import {
   buttonDanger,
   buttonGhost,
@@ -20,7 +25,6 @@ import {
   labelClass,
 } from "../components/ui/styles";
 
-type GoalStatus = "pending" | "overdue" | "completed";
 type StatusFilter = "all" | GoalStatus;
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
@@ -32,35 +36,6 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
 
 const emptyForm = { title: "", description: "", deadline: "", skillId: 0 };
 
-// Dias entre hoje e o prazo (negativo quando o prazo já passou)
-const getDaysUntil = (deadline: string) =>
-  Math.round(
-    (parseLocalDate(deadline).getTime() - parseLocalDate(todayLocalISO()).getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-const getStatus = (goal: Goal): GoalStatus => {
-  if (goal.completed) return "completed";
-  if (goal.deadline && getDaysUntil(goal.deadline) < 0) return "overdue";
-  return "pending";
-};
-
-const describeDeadline = (goal: Goal) => {
-  if (!goal.deadline) return "Sem prazo";
-  const days = getDaysUntil(goal.deadline);
-  if (goal.completed) return `Prazo ${parseLocalDate(goal.deadline).toLocaleDateString("pt-BR")}`;
-  if (days < 0) return `Atrasada há ${Math.abs(days)} ${Math.abs(days) === 1 ? "dia" : "dias"}`;
-  if (days === 0) return "Vence hoje";
-  return `${days} ${days === 1 ? "dia restante" : "dias restantes"}`;
-};
-
-const STATUS_BADGE: Record<GoalStatus, { label: string; className: string }> = {
-  pending: { label: "Em andamento", className: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300" },
-  overdue: { label: "Atrasada", className: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300" },
-  completed: {
-    label: "Concluída",
-    className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-  },
-};
 
 export default function Goals() {
   const { user } = useAuth();
@@ -72,6 +47,9 @@ export default function Goals() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [message, setMessage] = useState<AlertMessage | null>(null);
+  // erros do formulário aparecem dentro do diálogo
+  const [formError, setFormError] = useState("");
+  const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
 
   // filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -111,6 +89,7 @@ export default function Goals() {
   const openNewForm = () => {
     setEditingGoal(null);
     setFormData(emptyForm);
+    setFormError("");
     setShowForm(true);
     setMessage(null);
   };
@@ -123,6 +102,7 @@ export default function Goals() {
       deadline: goal.deadline || "",
       skillId: goal.skill_id,
     });
+    setFormError("");
     setShowForm(true);
     setMessage(null);
   };
@@ -134,15 +114,13 @@ export default function Goals() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
+    setFormError("");
 
-    if (!formData.title.trim()) return setMessage({ type: "error", text: "O título é obrigatório." });
-    if (!formData.skillId) return setMessage({ type: "error", text: "Selecione uma skill." });
-    if (!formData.deadline) return setMessage({ type: "error", text: "Informe o prazo." });
+    if (!formData.title.trim()) return setFormError("O título é obrigatório.");
+    if (!formData.skillId) return setFormError("Selecione uma skill.");
+    if (!formData.deadline) return setFormError("Informe o prazo.");
     // datas "yyyy-MM-dd" podem ser comparadas como texto
-    if (formData.deadline < todayLocalISO()) {
-      return setMessage({ type: "error", text: "O prazo deve ser hoje ou uma data futura." });
-    }
+    if (formData.deadline < todayLocalISO()) return setFormError("O prazo deve ser hoje ou uma data futura.");
 
     const goalData = {
       title: formData.title.trim(),
@@ -163,7 +141,7 @@ export default function Goals() {
       closeForm();
       await loadGoals();
     } catch (error: unknown) {
-      setMessage({ type: "error", text: getApiErrorMessage(error, "Erro ao salvar a meta.") });
+      setFormError(getApiErrorMessage(error, "Erro ao salvar a meta."));
     }
   };
 
@@ -178,17 +156,20 @@ export default function Goals() {
     }
   };
 
-  const handleDelete = async (goal: Goal) => {
-    if (!confirm(`Excluir a meta "${goal.title}"?`)) return;
+  const handleDelete = async () => {
+    if (!deletingGoal) return;
     try {
-      setMessage(null);
-      await goalService.deleteGoal(goal.id_goal);
-      setMessage({ type: "success", text: "Meta excluída." });
+      await goalService.deleteGoal(deletingGoal.id_goal);
       await loadGoals();
+      setMessage({ type: "success", text: "Meta excluída." });
     } catch (error: unknown) {
       setMessage({ type: "error", text: getApiErrorMessage(error, "Erro ao excluir a meta.") });
+    } finally {
+      setDeletingGoal(null);
     }
   };
+
+  const skillOptions = skills.map((skill) => ({ value: skill.id_skill, label: skill.name }));
 
   const term = searchTerm.trim().toLowerCase();
   // busca e skill filtram a lista; o status é aplicado por último para as abas mostrarem a contagem de cada um
@@ -198,9 +179,9 @@ export default function Goals() {
       (!skillFilter || goal.skill_id === skillFilter)
   );
   const countByStatus = (status: StatusFilter) =>
-    status === "all" ? searchedGoals.length : searchedGoals.filter((g) => getStatus(g) === status).length;
+    status === "all" ? searchedGoals.length : searchedGoals.filter((g) => getGoalStatus(g) === status).length;
   const filteredGoals = searchedGoals
-    .filter((goal) => statusFilter === "all" || getStatus(goal) === statusFilter)
+    .filter((goal) => statusFilter === "all" || getGoalStatus(goal) === statusFilter)
     // pendentes primeiro, ordenadas pelo prazo mais próximo
     .sort(
       (a, b) =>
@@ -231,11 +212,14 @@ export default function Goals() {
 
       <Alert message={message} onClose={() => setMessage(null)} />
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className={`${cardClass} space-y-4 p-5`}>
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            {editingGoal ? "Editar meta" : "Nova meta"}
-          </h2>
+      <Dialog
+        open={showForm}
+        onClose={closeForm}
+        title={editingGoal ? "Editar meta" : "Nova meta"}
+        description="Metas têm uma skill relacionada e um prazo para serem concluídas."
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Alert message={formError ? { type: "error", text: formError } : null} />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
@@ -272,20 +256,13 @@ export default function Goals() {
               <label htmlFor="goal-skill" className={labelClass}>
                 Skill
               </label>
-              <select
+              <Select
                 id="goal-skill"
                 value={formData.skillId}
-                onChange={(e) => setFormData({ ...formData, skillId: Number(e.target.value) })}
-                className={inputClass}
-                required
-              >
-                <option value={0}>Selecione</option>
-                {skills.map((skill) => (
-                  <option key={skill.id_skill} value={skill.id_skill}>
-                    {skill.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(skillId) => setFormData({ ...formData, skillId })}
+                options={skillOptions}
+                placeholder="Selecione"
+              />
             </div>
 
             <div>
@@ -304,16 +281,24 @@ export default function Goals() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <button type="submit" className={buttonPrimary}>
-              {editingGoal ? "Salvar alterações" : "Criar meta"}
-            </button>
+          <DialogFooter>
             <button type="button" onClick={closeForm} className={buttonSecondary}>
               Cancelar
             </button>
-          </div>
+            <button type="submit" className={buttonPrimary}>
+              {editingGoal ? "Salvar alterações" : "Criar meta"}
+            </button>
+          </DialogFooter>
         </form>
-      )}
+      </Dialog>
+
+      <ConfirmDialog
+        open={deletingGoal !== null}
+        title="Excluir meta?"
+        description={deletingGoal ? `A meta ${deletingGoal.title} será excluída permanentemente.` : ""}
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingGoal(null)}
+      />
 
       {goals.length > 0 && (
         <div className="space-y-3">
@@ -353,19 +338,13 @@ export default function Goals() {
                 aria-label="Buscar metas"
               />
             </div>
-            <select
+            <Select
               value={skillFilter}
-              onChange={(e) => setSkillFilter(Number(e.target.value))}
-              className={`${inputClass} sm:w-56`}
+              onChange={setSkillFilter}
+              options={[{ value: 0, label: "Todas as skills" }, ...skillOptions]}
+              className="sm:w-56"
               aria-label="Filtrar por skill"
-            >
-              <option value={0}>Todas as skills</option>
-              {skills.map((skill) => (
-                <option key={skill.id_skill} value={skill.id_skill}>
-                  {skill.name}
-                </option>
-              ))}
-            </select>
+            />
             {hasFilters && (
               <button onClick={clearFilters} className={buttonGhost}>
                 Limpar
@@ -407,8 +386,8 @@ export default function Goals() {
       ) : (
         <ul className={`${cardClass} divide-y divide-zinc-100 dark:divide-zinc-800`}>
           {filteredGoals.map((goal) => {
-            const status = getStatus(goal);
-            const badge = STATUS_BADGE[status];
+            const status = getGoalStatus(goal);
+            const badge = GOAL_STATUS_BADGE[status];
 
             return (
               <li key={goal.id_goal} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
@@ -423,7 +402,7 @@ export default function Goals() {
                     >
                       {goal.title}
                     </h3>
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>
+                    <Badge className={badge.className}>{badge.label}</Badge>
                   </div>
                   {goal.description && goal.description !== goal.title && (
                     <p className="mt-1 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{goal.description}</p>
@@ -454,7 +433,7 @@ export default function Goals() {
                     </>
                   )}
                   <button
-                    onClick={() => handleDelete(goal)}
+                    onClick={() => setDeletingGoal(goal)}
                     className={`${buttonDanger} px-2 py-1.5`}
                     title="Excluir"
                     aria-label={`Excluir ${goal.title}`}

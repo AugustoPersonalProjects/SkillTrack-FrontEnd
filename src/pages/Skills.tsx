@@ -12,6 +12,10 @@ import PageHeader from "../components/ui/PageHeader";
 import Alert, { type AlertMessage } from "../components/ui/Alert";
 import EmptyState from "../components/ui/EmptyState";
 import Spinner from "../components/ui/Spinner";
+import Select from "../components/ui/Select";
+import Badge from "../components/ui/Badge";
+import Dialog, { DialogFooter } from "../components/ui/Dialog";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 import {
   buttonDanger,
   buttonGhost,
@@ -43,6 +47,9 @@ export default function Skills() {
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [formData, setFormData] = useState<SkillRequest>(emptyForm(userId));
   const [message, setMessage] = useState<AlertMessage | null>(null);
+  // erros do formulário aparecem dentro do diálogo
+  const [formError, setFormError] = useState("");
+  const [deletingSkill, setDeletingSkill] = useState<Skill | null>(null);
 
   // filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,14 +87,14 @@ export default function Skills() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
+    setFormError("");
 
     if (!formData.name.trim()) {
-      setMessage({ type: "error", text: "O nome da skill é obrigatório." });
+      setFormError("O nome da skill é obrigatório.");
       return;
     }
     if (!formData.categoryId) {
-      setMessage({ type: "error", text: "Selecione uma categoria." });
+      setFormError("Selecione uma categoria.");
       return;
     }
 
@@ -105,13 +112,14 @@ export default function Skills() {
       closeForm();
       await loadSkills();
     } catch (error: unknown) {
-      setMessage({ type: "error", text: getApiErrorMessage(error, "Erro ao salvar a skill.") });
+      setFormError(getApiErrorMessage(error, "Erro ao salvar a skill."));
     }
   };
 
   const openNewForm = () => {
     setEditingSkill(null);
     setFormData(emptyForm(userId));
+    setFormError("");
     setShowForm(true);
     setMessage(null);
   };
@@ -125,6 +133,7 @@ export default function Skills() {
       level: skill.level,
       userId,
     });
+    setFormError("");
     setShowForm(true);
     setMessage(null);
   };
@@ -134,19 +143,21 @@ export default function Skills() {
     setShowForm(false);
   };
 
-  const handleDelete = async (skill: Skill) => {
-    if (!confirm(`Excluir a skill "${skill.name}"? As metas e os registros de progresso dela também serão excluídos.`)) {
-      return;
-    }
-
+  const handleDelete = async () => {
+    if (!deletingSkill) return;
     try {
-      await skillService.deleteSkill(skill.id_skill);
-      setMessage({ type: "success", text: "Skill excluída." });
+      await skillService.deleteSkill(deletingSkill.id_skill);
       await loadSkills();
+      setMessage({ type: "success", text: "Skill excluída." });
     } catch (error: unknown) {
       setMessage({ type: "error", text: getApiErrorMessage(error, "Erro ao excluir a skill.") });
+    } finally {
+      setDeletingSkill(null);
     }
   };
+
+  const categoryOptions = categories.map((c) => ({ value: c.id_category, label: c.name }));
+  const levelOptions = SKILL_LEVELS.map((level) => ({ value: level, label: SKILL_LEVEL_LABELS[level] }));
 
   const openProgressForm = (skill: Skill) => {
     setProgressSkillId(skill.id_skill);
@@ -204,11 +215,14 @@ export default function Skills() {
 
       <Alert message={message} onClose={() => setMessage(null)} />
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className={`${cardClass} space-y-4 p-5`}>
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-            {editingSkill ? "Editar skill" : "Nova skill"}
-          </h2>
+      <Dialog
+        open={showForm}
+        onClose={closeForm}
+        title={editingSkill ? "Editar skill" : "Nova skill"}
+        description="Defina a categoria e o seu nível atual nesta habilidade."
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Alert message={formError ? { type: "error", text: formError } : null} />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
@@ -245,51 +259,50 @@ export default function Skills() {
               <label htmlFor="skill-category" className={labelClass}>
                 Categoria
               </label>
-              <select
+              <Select
                 id="skill-category"
                 value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: Number(e.target.value) })}
-                className={inputClass}
-                required
-              >
-                <option value={0}>Selecione</option>
-                {categories.map((category) => (
-                  <option key={category.id_category} value={category.id_category}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(categoryId) => setFormData({ ...formData, categoryId })}
+                options={categoryOptions}
+                placeholder="Selecione"
+              />
             </div>
 
             <div>
               <label htmlFor="skill-level" className={labelClass}>
                 Nível
               </label>
-              <select
+              <Select
                 id="skill-level"
                 value={formData.level}
-                onChange={(e) => setFormData({ ...formData, level: e.target.value as SkillLevel })}
-                className={inputClass}
-              >
-                {SKILL_LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {SKILL_LEVEL_LABELS[level]}
-                  </option>
-                ))}
-              </select>
+                onChange={(level) => setFormData({ ...formData, level })}
+                options={levelOptions}
+              />
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <button type="submit" className={buttonPrimary}>
-              {editingSkill ? "Salvar alterações" : "Criar skill"}
-            </button>
+          <DialogFooter>
             <button type="button" onClick={closeForm} className={buttonSecondary}>
               Cancelar
             </button>
-          </div>
+            <button type="submit" className={buttonPrimary}>
+              {editingSkill ? "Salvar alterações" : "Criar skill"}
+            </button>
+          </DialogFooter>
         </form>
-      )}
+      </Dialog>
+
+      <ConfirmDialog
+        open={deletingSkill !== null}
+        title="Excluir skill?"
+        description={
+          deletingSkill
+            ? `A skill ${deletingSkill.name} será excluída junto com as metas e os registros de progresso dela.`
+            : ""
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingSkill(null)}
+      />
 
       {skills.length > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -304,32 +317,20 @@ export default function Skills() {
               aria-label="Buscar skills"
             />
           </div>
-          <select
+          <Select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(Number(e.target.value))}
-            className={`${inputClass} sm:w-48`}
+            onChange={setCategoryFilter}
+            options={[{ value: 0, label: "Todas as categorias" }, ...categoryOptions]}
+            className="sm:w-48"
             aria-label="Filtrar por categoria"
-          >
-            <option value={0}>Todas as categorias</option>
-            {categories.map((category) => (
-              <option key={category.id_category} value={category.id_category}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <select
+          />
+          <Select<SkillLevel | "">
             value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value as SkillLevel | "")}
-            className={`${inputClass} sm:w-44`}
+            onChange={setLevelFilter}
+            options={[{ value: "", label: "Todos os níveis" }, ...levelOptions]}
+            className="sm:w-44"
             aria-label="Filtrar por nível"
-          >
-            <option value="">Todos os níveis</option>
-            {SKILL_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {SKILL_LEVEL_LABELS[level]}
-              </option>
-            ))}
-          </select>
+          />
           {hasFilters && (
             <button onClick={clearFilters} className={buttonGhost}>
               Limpar
@@ -380,9 +381,7 @@ export default function Skills() {
                       </h3>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">{getCategoryName(skill.category_id)}</p>
                     </div>
-                    <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${SKILL_LEVEL_BADGE[skill.level]}`}>
-                      {SKILL_LEVEL_LABELS[skill.level]}
-                    </span>
+                    <Badge className={SKILL_LEVEL_BADGE[skill.level]}>{SKILL_LEVEL_LABELS[skill.level]}</Badge>
                   </div>
 
                   {skill.description && (
@@ -438,7 +437,7 @@ export default function Skills() {
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(skill)}
+                      onClick={() => setDeletingSkill(skill)}
                       className={`${buttonDanger} px-2 py-1.5`}
                       title="Excluir"
                       aria-label={`Excluir ${skill.name}`}
