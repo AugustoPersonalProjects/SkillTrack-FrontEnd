@@ -1,7 +1,8 @@
-import { Menu, Bell, Search } from "lucide-react";
-import { useAuth } from "../../contexts/useAuth";
+import { Menu, Bell } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { NOTIFICATIONS_EVENT } from "../../utils/notificationHelper";
+import ThemeToggle from "../ui/ThemeToggle";
+import { iconButton } from "../ui/styles";
 
 interface Notification {
   id: number;
@@ -11,38 +12,36 @@ interface Notification {
   read: boolean;
 }
 
-export default function Navbar() {
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+const loadNotifications = (): Notification[] => {
+  try {
+    return JSON.parse(localStorage.getItem("notifications") || "[]");
+  } catch {
+    return [];
+  }
+};
+
+// Horário relativo a partir do id, que é o timestamp de criação da notificação
+const formatTime = (id: number) => {
+  const minutes = Math.floor((Date.now() - id) / 60000);
+  if (minutes < 1) return "Agora mesmo";
+  if (minutes < 60) return `Há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Há ${hours} h`;
+  return new Date(id).toLocaleDateString("pt-BR");
+};
+
+export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
+  const [notifications, setNotifications] = useState<Notification[]>(loadNotifications);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  // Simulação de notificações dinâmicas (poderia vir da API futuramente)
   useEffect(() => {
-    const saved = localStorage.getItem("notifications");
-    if (saved) {
-      setNotifications(JSON.parse(saved));
-    } else {
-      const initial: Notification[] = [
-        {
-          id: 1,
-          message: "Bem-vindo ao SkillTrack!",
-          time: "Agora mesmo",
-          type: "info",
-          read: false,
-        },
-      ];
-      localStorage.setItem("notifications", JSON.stringify(initial));
-      setNotifications(initial);
-    }
-
-    const reload = () =>
-      setNotifications(JSON.parse(localStorage.getItem("notifications") || "[]"));
+    const reload = () => setNotifications(loadNotifications());
     window.addEventListener(NOTIFICATIONS_EVENT, reload);
     return () => window.removeEventListener(NOTIFICATIONS_EVENT, reload);
   }, []);
 
-  // Fechar popover clicando fora
+  // Fecha o painel ao clicar fora
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -67,112 +66,72 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/60 shadow-sm relative">
-      <div className="flex items-center justify-between px-6 py-4">
-        {/* 🔍 Pesquisa */}
-        <div className="flex items-center gap-4">
-          <button className="p-2 rounded-xl hover:bg-gray-100 transition-all duration-200">
-            <Menu className="w-5 h-5 text-gray-600" />
-          </button>
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Pesquisar..."
-              className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none w-64"
-            />
-          </div>
-        </div>
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900 sm:px-6 lg:px-8">
+      <button className={`${iconButton} lg:hidden`} onClick={onMenuClick} aria-label="Abrir menu">
+        <Menu className="h-5 w-5" />
+      </button>
 
-        {/* Notificações e usuário */}
-        <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
-          {/* Botão de notificações */}
+      <div className="ml-auto flex items-center gap-1" ref={dropdownRef}>
+        <ThemeToggle />
+
+        <div className="relative">
           <button
             onClick={() => setOpen(!open)}
-            className="relative p-2 rounded-xl hover:bg-gray-100 transition-all duration-200"
+            className={`${iconButton} relative`}
+            aria-label={`Notificações${unreadCount > 0 ? ` (${unreadCount} não lidas)` : ""}`}
           >
-            <Bell className="w-5 h-5 text-gray-600" />
+            <Bell className="h-[18px] w-[18px]" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-zinc-900" />
             )}
           </button>
 
-          {/* Popover de notificações */}
           {open && (
-            <div className="absolute right-14 top-12 w-80 bg-white rounded-xl shadow-xl border p-4 z-50">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">
-                  Notificações ({notifications.length})
-                </h3>
-                <button
-                  onClick={clearNotifications}
-                  className="text-xs text-gray-500 hover:text-red-500 transition"
-                >
-                  Limpar
-                </button>
+            <div className="absolute right-0 top-11 z-50 w-80 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Notificações</h3>
+                {notifications.length > 0 && (
+                  <button
+                    onClick={clearNotifications}
+                    className="text-xs text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  >
+                    Limpar
+                  </button>
+                )}
               </div>
 
               {notifications.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  Nenhuma notificação no momento.
+                <p className="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                  Nenhuma notificação.
                 </p>
               ) : (
-                <ul className="max-h-60 overflow-y-auto space-y-2">
+                <ul className="max-h-72 divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-800">
                   {notifications.map((n) => (
-                    <li
-                      key={n.id}
-                      className={`flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition ${
-                        n.read ? "opacity-70" : ""
-                      }`}
-                    >
-                      <div
-                        className={`w-2.5 h-2.5 rounded-full mt-1.5 ${
-                          n.type === "goal"
-                            ? "bg-green-500"
-                            : n.type === "skill"
-                            ? "bg-blue-500"
-                            : "bg-gray-400"
+                    <li key={n.id} className="flex items-start gap-3 px-4 py-3">
+                      <span
+                        className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                          n.read ? "bg-transparent" : "bg-emerald-600"
                         }`}
-                      ></div>
+                      />
                       <div>
-                        <p className="text-sm text-gray-800">{n.message}</p>
-                        <p className="text-xs text-gray-500">{n.time}</p>
+                        <p className="text-sm text-zinc-800 dark:text-zinc-200">{n.message}</p>
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{formatTime(n.id)}</p>
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
 
-              {notifications.length > 0 && (
+              {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="w-full mt-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm rounded-lg transition"
+                  className="w-full border-t border-zinc-200 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-emerald-400 dark:hover:bg-zinc-800/60"
                 >
                   Marcar todas como lidas
                 </button>
               )}
             </div>
           )}
-
-          {/* Perfil */}
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">
-                {user?.nome || "Usuário"}
-              </p>
-              <p className="text-xs text-gray-500">
-                {user?.perfil === "ADMIN" ? "Admin" : "User"}
-              </p>
-            </div>
-            <img
-              src={
-                user?.foto ||
-                "https://i.pravatar.cc/40?img=" + ((user?.id_usuario || 1) % 70)
-              }
-              alt="User avatar"
-              className="w-10 h-10 rounded-xl border-2 border-white shadow-sm object-cover"
-            />
-          </div>
         </div>
       </div>
     </header>

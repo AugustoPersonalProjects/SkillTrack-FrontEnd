@@ -1,88 +1,78 @@
-import { Home, Target, Star, LogOut, Settings } from "lucide-react";
+import { LayoutDashboard, Layers, Target, LogOut, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
+import Logo from "../ui/Logo";
+import Avatar from "../ui/Avatar";
+import { iconButton } from "../ui/styles";
 
-export default function Sidebar() {
+const links = [
+  { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
+  { to: "/skills", label: "Skills", icon: Layers },
+  { to: "/goals", label: "Metas", icon: Target },
+];
+
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ open, onClose }: SidebarProps) {
   const { logout, user } = useAuth();
 
-  const links = [
-    { to: "/dashboard", label: "Dashboard", icon: <Home className="w-5 h-5" /> },
-    { to: "/skills", label: "Skills", icon: <Star className="w-5 h-5" /> },
-    { to: "/goals", label: "Metas", icon: <Target className="w-5 h-5" /> },
-  ];
-
-  const handleLogout = () => logout();
-
   return (
-    <aside className="w-80 bg-gradient-to-b from-blue-600 to-blue-700 text-white flex flex-col shadow-xl">
-      {/* Logo */}
-      <div className="p-6 border-b border-blue-500/30">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-            <Star className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">SkillTrack</h1>
-            <p className="text-blue-100 text-sm">Professional Growth</p>
-          </div>
-        </div>
-      </div>
+    <>
+      {open && (
+        <div className="fixed inset-0 z-30 bg-zinc-950/40 lg:hidden" onClick={onClose} aria-hidden="true" />
+      )}
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {links.map((link) => (
-            <li key={link.to}>
-              <NavLink
-                to={link.to}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                    isActive
-                      ? "bg-white/20 text-white shadow-lg"
-                      : "text-blue-100 hover:bg-white/10 hover:text-white"
-                  }`
-                }
-              >
-                {link.icon}
-                <span className="font-medium">{link.label}</span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-blue-500/30 space-y-3">
-        <div className="flex items-center gap-3 px-4 py-2 bg-white/10 rounded-xl">
-          <img
-            src={
-              user?.foto ||
-              "https://i.pravatar.cc/40?img=" + ((user?.id_usuario || 1) % 70)
-            }
-            alt="User"
-            className="w-8 h-8 rounded-lg border border-white/30"
-          />
-          <div className="text-sm">
-            <p className="font-semibold">{user?.nome || "Usuário"}</p>
-            <p className="text-blue-200 text-xs">
-              {user?.perfil === "ADMIN" ? "Admin" : "Usuario"}
-            </p>
-          </div>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-zinc-200 bg-white transition-transform dark:border-zinc-800 dark:bg-zinc-900 lg:static lg:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex h-16 items-center justify-between px-5">
+          <Logo />
+          <button className={`${iconButton} lg:hidden`} onClick={onClose} aria-label="Fechar menu">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-100 hover:bg-white/10 hover:text-white transition-all duration-200 w-full text-left">
-          <Settings className="w-5 h-5" />
-          <span className="font-medium">Configurações</span>
-        </button>
+        <nav className="flex-1 px-3 py-4">
+          <ul className="space-y-1">
+            {links.map(({ to, label, icon: Icon }) => (
+              <li key={to}>
+                <NavLink
+                  to={to}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                        : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
+                    }`
+                  }
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  {label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-blue-100 hover:bg-red-500/20 hover:text-red-100 transition-all duration-200 w-full text-left"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Sair</span>
-        </button>
-      </div>
-    </aside>
+        <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <Avatar name={user?.nome} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{user?.nome || "Usuário"}</p>
+              <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{user?.email}</p>
+            </div>
+            <button onClick={logout} className={iconButton} title="Sair" aria-label="Sair">
+              <LogOut className="h-[18px] w-[18px]" />
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
