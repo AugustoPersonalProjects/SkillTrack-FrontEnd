@@ -14,6 +14,7 @@ import { skillService } from "../services/skillService";
 import type { Goal, Skill } from "../types/interfaces";
 import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
+import { parseLocalDate, todayLocalISO } from "../utils/date";
 
 export default function Goals() {
   const { user, loadingUser } = useAuth();
@@ -80,10 +81,9 @@ export default function Goals() {
     if (!formData.skillId) return setError("Selecione uma skill");
     if (!formData.deadline) return setError("A data limite é obrigatória");
 
-    const deadlineDate = new Date(formData.deadline);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (deadlineDate < today) return setError("A data deve ser futura");
+    // datas "yyyy-MM-dd" podem ser comparadas como texto
+    if (formData.deadline < todayLocalISO())
+      return setError("A data deve ser hoje ou futura");
 
     try {
       if (!user?.id_usuario) {
@@ -157,10 +157,9 @@ export default function Goals() {
   };
 
   const getDaysUntilDeadline = (deadline: string) => {
-    const today = new Date();
-    const deadlineDate = new Date(deadline);
-    const diffTime = deadlineDate.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const today = parseLocalDate(todayLocalISO());
+    const diffTime = parseLocalDate(deadline).getTime() - today.getTime();
+    return Math.round(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const getSkillName = (skillId: number) => {
@@ -175,11 +174,6 @@ export default function Goals() {
           goal?.description?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     : [];
-
-  // Debug
-  useEffect(() => {
-    console.log("🔍 DEBUG - Estado atual:", { goals, skills, user, loading });
-  }, [goals, skills, user, loading]);
 
   if (loadingUser || loading) {
     return (
@@ -359,7 +353,7 @@ export default function Goals() {
                     setFormData({ ...formData, deadline: e.target.value })
                   }
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
-                  min={new Date().toISOString().split("T")[0]}
+                  min={todayLocalISO()}
                   required
                 />
               </div>
@@ -428,7 +422,7 @@ export default function Goals() {
                         <Calendar className="w-4 h-4" />
                         <span>
                           Prazo:{" "}
-                          {new Date(goal.deadline).toLocaleDateString("pt-BR")}
+                          {parseLocalDate(goal.deadline).toLocaleDateString("pt-BR")}
                         </span>
                       </div>
                       <div
