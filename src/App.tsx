@@ -8,6 +8,10 @@ import Goals from "./pages/Goals";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminRoute from "./routes/AdminRoute";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUserDetail from "./pages/admin/AdminUserDetail";
+import AdminCategories from "./pages/admin/AdminCategories";
 
 // Componente de rotas que usa o hook useAuth
 function AppRoutes() {
@@ -42,6 +46,11 @@ function AppRoutes() {
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="skills" element={<Skills />} />
                   <Route path="goals" element={<Goals />} />
+                  {/* Administração (perfil ADMIN) */}
+                  <Route path="admin" element={<Navigate to="/admin/usuarios" replace />} />
+                  <Route path="admin/usuarios" element={<AdminRoute><AdminOverview /></AdminRoute>} />
+                  <Route path="admin/usuarios/:id" element={<AdminRoute><AdminUserDetail /></AdminRoute>} />
+                  <Route path="admin/categorias" element={<AdminRoute><AdminCategories /></AdminRoute>} />
                   {/* Fallback para rotas não encontradas */}
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>

@@ -122,3 +122,44 @@ Token JWT puro
 export interface TokenResponse {
   token: string;
 }
+
+// ADMINISTRAÇÃO
+
+// Criação de usuário pelo ADMIN (o perfil só é respeitado para ADMIN)
+export interface UsuarioCreateRequest {
+  nome: string;
+  email: string;
+  senha: string;
+  perfil: Perfil;
+}
+
+// Na atualização a senha é opcional: vazia mantém a atual
+export interface UsuarioUpdateRequest {
+  nome: string;
+  email: string;
+  senha?: string;
+  perfil?: Perfil;
+}
+
+export interface CategoryRequest {
+  name: string;
+  description?: string;
+}
+
+export interface AdminUsuarioResumo extends Usuario {
+  totalSkills: number;
+  totalGoals: number;
+  completedGoals: number;
+}
+
+// Resposta do GET /admin/resumo
+export interface AdminResumo {
+  totalUsuarios: number;
+  totalAdmins: number;
+  totalSkills: number;
+  totalGoals: number;
+  completedGoals: number;
+  totalProgress: number;
+  totalCategories: number;
+  usuarios: AdminUsuarioResumo[];
+}

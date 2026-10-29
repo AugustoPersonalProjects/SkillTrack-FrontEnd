@@ -1,15 +1,28 @@
-import { LayoutDashboard, Layers, Target, LogOut, X } from "lucide-react";
+import { LayoutDashboard, Layers, Target, LogOut, X, Users, Tags } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import Logo from "../ui/Logo";
 import Avatar from "../ui/Avatar";
 import { iconButton } from "../ui/styles";
+import { Perfil } from "../../types/interfaces";
 
 const links = [
   { to: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
   { to: "/skills", label: "Skills", icon: Layers },
   { to: "/goals", label: "Metas", icon: Target },
 ];
+
+const adminLinks = [
+  { to: "/admin/usuarios", label: "Usuários", icon: Users },
+  { to: "/admin/categorias", label: "Categorias", icon: Tags },
+];
+
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+    isActive
+      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
+  }`;
 
 interface SidebarProps {
   open: boolean;
@@ -41,23 +54,31 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <ul className="space-y-1">
             {links.map(({ to, label, icon: Icon }) => (
               <li key={to}>
-                <NavLink
-                  to={to}
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                        : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
-                    }`
-                  }
-                >
+                <NavLink to={to} onClick={onClose} className={linkClass}>
                   <Icon className="h-[18px] w-[18px]" />
                   {label}
                 </NavLink>
               </li>
             ))}
           </ul>
+
+          {user?.perfil === Perfil.ADMIN && (
+            <>
+              <p className="mb-2 mt-6 px-3 text-xs font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Administração
+              </p>
+              <ul className="space-y-1">
+                {adminLinks.map(({ to, label, icon: Icon }) => (
+                  <li key={to}>
+                    <NavLink to={to} onClick={onClose} className={linkClass}>
+                      <Icon className="h-[18px] w-[18px]" />
+                      {label}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </nav>
 
         <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">

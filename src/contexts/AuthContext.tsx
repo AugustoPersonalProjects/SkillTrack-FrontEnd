@@ -12,6 +12,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const savedUser = authService.getCurrentUser();
     if (savedUser && authService.getToken()) {
       setUser(savedUser);
+      // atualiza em segundo plano; um token expirado já leva ao login pelo interceptor da API
+      authService
+        .refreshSession()
+        .then((freshUser) => freshUser && setUser(freshUser))
+        .catch(() => {});
     }
     setLoadingUser(false);
   }, []);

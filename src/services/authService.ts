@@ -64,6 +64,12 @@ export const authService = {
     localStorage.removeItem("notifications");
   },
 
+  // Recarrega os dados do usuário logado (ex.: perfil alterado por um ADMIN)
+  async refreshSession(): Promise<Usuario | null> {
+    const token = this.getToken();
+    return token ? startSession(token) : null;
+  },
+
   getCurrentUser(): Usuario | null {
     try {
       const userData = localStorage.getItem("user");
