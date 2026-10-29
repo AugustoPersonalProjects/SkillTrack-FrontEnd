@@ -1,118 +1,119 @@
-import { useState, useEffect } from "react";
-import {
-  Plus,
-  Search,
-  Filter,
-  TrendingUp,
-  Edit,
-  Trash2,
-  Award,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Search, Pencil, Trash2, Layers, TrendingUp } from "lucide-react";
 import { skillService } from "../services/skillService";
 import { categoryService } from "../services/categoryService";
 import { progressService } from "../services/progressService";
-import {
-  type Skill,
-  type SkillRequest,
-  type Category,
-  SkillLevel,
-} from "../types/interfaces";
+import { type Skill, type SkillRequest, type Category, SkillLevel } from "../types/interfaces";
 import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 import { getLatestPercentage } from "../utils/progress";
+import { SKILL_LEVELS, SKILL_LEVEL_BADGE, SKILL_LEVEL_LABELS } from "../utils/skillLevel";
+import PageHeader from "../components/ui/PageHeader";
+import Alert, { type AlertMessage } from "../components/ui/Alert";
+import EmptyState from "../components/ui/EmptyState";
+import Spinner from "../components/ui/Spinner";
+import {
+  buttonDanger,
+  buttonGhost,
+  buttonPrimary,
+  buttonSecondary,
+  cardClass,
+  inputClass,
+  labelClass,
+} from "../components/ui/styles";
+
+const plural = (count: number, singular: string, pluralForm: string) =>
+  `${count} ${count === 1 ? singular : pluralForm}`;
+
+const emptyForm = (userId: number): SkillRequest => ({
+  name: "",
+  description: "",
+  categoryId: 0,
+  level: SkillLevel.BEGINNER,
+  userId,
+});
 
 export default function Skills() {
   const { user } = useAuth();
+  const userId = user?.id_usuario ?? 0;
   const [skills, setSkills] = useState<Skill[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
+  const [formData, setFormData] = useState<SkillRequest>(emptyForm(userId));
+  const [message, setMessage] = useState<AlertMessage | null>(null);
+
+  // filtros
   const [searchTerm, setSearchTerm] = useState("");
-  const [error, setError] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(0);
+  const [levelFilter, setLevelFilter] = useState<SkillLevel | "">("");
+
   // skill com o formulário de progresso aberto e o valor digitado
   const [progressSkillId, setProgressSkillId] = useState<number | null>(null);
   const [progressValue, setProgressValue] = useState(0);
 
-  const [formData, setFormData] = useState<SkillRequest>({
-    name: "",
-    description: "",
-    categoryId: 0,
-    level: SkillLevel.BEGINNER,
-    userId: user?.id_usuario || 1, // Default para desenvolvimento
-  });
-
-  useEffect(() => {
-    loadSkills();
-    loadCategories();
-  }, [user]);
-
-  const loadSkills = async () => {
+  const loadSkills = useCallback(async () => {
+    if (!userId) return;
     try {
-      setLoading(true);
-      setError("");
-      const skillsData = user?.id_usuario
-        ? await skillService.getUserSkills(user.id_usuario)
-        : [];
-      setSkills(Array.isArray(skillsData) ? skillsData : []);
+      const data = await skillService.getUserSkills(userId);
+      setSkills(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Erro ao carregar skills:", error);
-      setError(
-        "Erro ao carregar skills. Verifique se o servidor está rodando.",
-      );
+      setMessage({ type: "error", text: "Não foi possível carregar as skills." });
       setSkills([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [userId]);
 
-  const loadCategories = async () => {
-    try {
-      const data = await categoryService.getCategories();
-      setCategories(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Erro ao carregar categorias:", err);
-      setCategories([]);
-    }
-  };
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const [, data] = await Promise.all([loadSkills(), categoryService.getCategories()]);
+      setCategories(data);
+      setLoading(false);
+    };
+    load();
+  }, [loadSkills]);
+
+  const getCategoryName = (id: number) =>
+    categories.find((c) => c.id_category === id)?.name ?? "Sem categoria";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setMessage(null);
 
     if (!formData.name.trim()) {
-      setError("O nome da skill é obrigatório");
+      setMessage({ type: "error", text: "O nome da skill é obrigatório." });
       return;
     }
-
     if (!formData.categoryId) {
-      setError("Selecione uma categoria");
-      return;
-    }
-
-    if (!user?.id_usuario) {
-      setError("Usuário não autenticado. Faça login novamente.");
+      setMessage({ type: "error", text: "Selecione uma categoria." });
       return;
     }
 
     // a skill sempre pertence ao usuário logado
-    const skillData = { ...formData, userId: user.id_usuario };
+    const skillData = { ...formData, name: formData.name.trim(), userId };
 
     try {
       if (editingSkill) {
         await skillService.updateSkill(editingSkill.id_skill, skillData);
-        setError("Skill atualizada com sucesso!");
+        setMessage({ type: "success", text: "Skill atualizada." });
       } else {
         await skillService.createSkill(skillData);
-        setError("Skill criada com sucesso!");
+        setMessage({ type: "success", text: "Skill criada." });
       }
-
-      resetForm();
+      closeForm();
       await loadSkills();
     } catch (error: unknown) {
-      console.error("Erro ao salvar skill:", error);
-      setError(getApiErrorMessage(error, "Erro ao salvar skill"));
+      setMessage({ type: "error", text: getApiErrorMessage(error, "Erro ao salvar a skill.") });
     }
+  };
+
+  const openNewForm = () => {
+    setEditingSkill(null);
+    setFormData(emptyForm(userId));
+    setShowForm(true);
+    setMessage(null);
   };
 
   const handleEdit = (skill: Skill) => {
@@ -122,415 +123,334 @@ export default function Skills() {
       description: skill.description || "",
       categoryId: skill.category_id,
       level: skill.level,
-      userId: user?.id_usuario || 1,
+      userId,
     });
     setShowForm(true);
-    setError("");
+    setMessage(null);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir esta skill?")) return;
+  const closeForm = () => {
+    setEditingSkill(null);
+    setShowForm(false);
+  };
+
+  const handleDelete = async (skill: Skill) => {
+    if (!confirm(`Excluir a skill "${skill.name}"? As metas e os registros de progresso dela também serão excluídos.`)) {
+      return;
+    }
 
     try {
-      await skillService.deleteSkill(id);
-      setError("Skill excluída com sucesso!");
+      await skillService.deleteSkill(skill.id_skill);
+      setMessage({ type: "success", text: "Skill excluída." });
       await loadSkills();
     } catch (error: unknown) {
-      console.error("Erro ao excluir skill:", error);
-      setError(getApiErrorMessage(error, "Erro ao excluir skill"));
+      setMessage({ type: "error", text: getApiErrorMessage(error, "Erro ao excluir a skill.") });
     }
   };
 
   const openProgressForm = (skill: Skill) => {
     setProgressSkillId(skill.id_skill);
     setProgressValue(getLatestPercentage(skill));
-    setError("");
+    setMessage(null);
   };
 
   const handleSaveProgress = async (skillId: number) => {
-    if (progressValue < 0 || progressValue > 100) {
-      setError("O progresso deve estar entre 0 e 100%");
+    if (!Number.isInteger(progressValue) || progressValue < 0 || progressValue > 100) {
+      setMessage({ type: "error", text: "O progresso deve ser um número inteiro entre 0 e 100." });
       return;
     }
 
     try {
-      await progressService.createProgress({
-        skill_id: skillId,
-        percentage: progressValue,
-      });
+      await progressService.createProgress({ skill_id: skillId, percentage: progressValue });
       setProgressSkillId(null);
-      setError("Progresso registrado com sucesso!");
       await loadSkills();
+      setMessage({ type: "success", text: "Progresso registrado." });
     } catch (error: unknown) {
-      console.error("Erro ao registrar progresso:", error);
-      setError(getApiErrorMessage(error, "Erro ao registrar progresso"));
+      setMessage({ type: "error", text: getApiErrorMessage(error, "Erro ao registrar o progresso.") });
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      categoryId: 0,
-      level: SkillLevel.BEGINNER,
-      userId: user?.id_usuario || 1,
-    });
-    setEditingSkill(null);
-    setShowForm(false);
-    setError("");
+  const hasFilters = searchTerm !== "" || categoryFilter !== 0 || levelFilter !== "";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setCategoryFilter(0);
+    setLevelFilter("");
   };
 
-  const getLevelColor = (level: SkillLevel) => {
-    switch (level) {
-      case SkillLevel.BEGINNER:
-        return "bg-yellow-100 text-yellow-800";
-      case SkillLevel.INTERMEDIATE:
-        return "bg-blue-100 text-blue-800";
-      case SkillLevel.ADVANCED:
-        return "bg-green-100 text-green-800";
-      case SkillLevel.EXPERT:
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getLevelText = (level: SkillLevel) => {
-    switch (level) {
-      case SkillLevel.BEGINNER:
-        return "Iniciante";
-      case SkillLevel.INTERMEDIATE:
-        return "Intermediário";
-      case SkillLevel.ADVANCED:
-        return "Avançado";
-      case SkillLevel.EXPERT:
-        return "Especialista";
-      default:
-        return level;
-    }
-  };
-
-  const filteredSkills = skills.filter((skill) =>
-    skill.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  const term = searchTerm.trim().toLowerCase();
+  const filteredSkills = skills.filter(
+    (skill) =>
+      (!term ||
+        skill.name.toLowerCase().includes(term) ||
+        skill.description?.toLowerCase().includes(term)) &&
+      (!categoryFilter || skill.category_id === categoryFilter) &&
+      (!levelFilter || skill.level === levelFilter)
   );
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Skills 🛠️</h2>
-          <p className="text-gray-600">
-            Gerencie suas habilidades e acompanhe o progresso
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Nova Skill
-        </button>
-      </div>
+      <PageHeader
+        title="Skills"
+        description="Gerencie suas habilidades e registre o seu progresso."
+        action={
+          <button onClick={openNewForm} className={buttonPrimary}>
+            <Plus className="h-4 w-4" /> Nova skill
+          </button>
+        }
+      />
 
-      {/* Mensagem de erro/sucesso */}
-      {error && (
-        <div
-          className={`p-4 rounded-xl ${
-            error.includes("sucesso")
-              ? "bg-green-50 border border-green-200 text-green-700"
-              : "bg-red-50 border border-red-200 text-red-700"
-          }`}
-        >
-          {error}
-        </div>
-      )}
+      <Alert message={message} onClose={() => setMessage(null)} />
 
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Pesquisar skills..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
-          />
-        </div>
-        <button className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors duration-200">
-          <Filter className="w-5 h-5 text-gray-600" />
-          <span>Filtrar</span>
-        </button>
-      </div>
-
-      {/* Formulário */}
       {showForm && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
-            {editingSkill ? "Editar Skill" : "Nova Skill"}
-          </h3>
+        <form onSubmit={handleSubmit} className={`${cardClass} space-y-4 p-5`}>
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+            {editingSkill ? "Editar skill" : "Nova skill"}
+          </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Nome */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome da Skill *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
-                  placeholder="Ex: Spring Boot, React, Docker..."
-                  required
-                />
-              </div>
-
-              {/* Descrição */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descrição
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
-                  placeholder="Descreva esta habilidade..."
-                  rows={2}
-                />
-              </div>
-
-              {/* Categoria */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categoria *
-                </label>
-                <select
-                  value={formData.categoryId}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      categoryId: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
-                  required
-                >
-                  <option value={0}>Selecione uma categoria</option>
-                  {(Array.isArray(categories) ? categories : []).map(
-                    (category) => (
-                      <option
-                        key={category.id_category}
-                        value={category.id_category}
-                      >
-                        {category.name}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </div>
-
-              {/* Nível */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nível *
-                </label>
-                <select
-                  value={formData.level}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      level: e.target.value as SkillLevel,
-                    })
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
-                  required
-                >
-                  {Object.values(SkillLevel).map((level) => (
-                    <option key={level} value={level}>
-                      {getLevelText(level)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label htmlFor="skill-name" className={labelClass}>
+                Nome
+              </label>
+              <input
+                id="skill-name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className={inputClass}
+                placeholder="Ex.: Spring Boot, React, Docker"
+                maxLength={100}
+                required
+              />
             </div>
 
-            {/* Botões */}
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                className="bg-green-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-green-700 transition-colors duration-200 flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                {editingSkill ? "Atualizar" : "Criar"} Skill
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="bg-gray-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors duration-200"
-              >
-                Cancelar
-              </button>
+            <div className="md:col-span-2">
+              <label htmlFor="skill-description" className={labelClass}>
+                Descrição <span className="font-normal text-zinc-400">(opcional)</span>
+              </label>
+              <textarea
+                id="skill-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className={inputClass}
+                rows={2}
+                maxLength={255}
+              />
             </div>
-          </form>
-        </div>
+
+            <div>
+              <label htmlFor="skill-category" className={labelClass}>
+                Categoria
+              </label>
+              <select
+                id="skill-category"
+                value={formData.categoryId}
+                onChange={(e) => setFormData({ ...formData, categoryId: Number(e.target.value) })}
+                className={inputClass}
+                required
+              >
+                <option value={0}>Selecione</option>
+                {categories.map((category) => (
+                  <option key={category.id_category} value={category.id_category}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="skill-level" className={labelClass}>
+                Nível
+              </label>
+              <select
+                id="skill-level"
+                value={formData.level}
+                onChange={(e) => setFormData({ ...formData, level: e.target.value as SkillLevel })}
+                className={inputClass}
+              >
+                {SKILL_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {SKILL_LEVEL_LABELS[level]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button type="submit" className={buttonPrimary}>
+              {editingSkill ? "Salvar alterações" : "Criar skill"}
+            </button>
+            <button type="button" onClick={closeForm} className={buttonSecondary}>
+              Cancelar
+            </button>
+          </div>
+        </form>
       )}
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(Array.isArray(filteredSkills) ? filteredSkills : []).map((skill) => (
-          <div
-            key={skill.id_skill}
-            className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group"
+      {skills.length > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="search"
+              placeholder="Buscar por nome ou descrição"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`${inputClass} pl-9`}
+              aria-label="Buscar skills"
+            />
+          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(Number(e.target.value))}
+            className={`${inputClass} sm:w-48`}
+            aria-label="Filtrar por categoria"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
-                  {skill.name}
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  {(Array.isArray(categories) ? categories : []).find(
-                    (cat) => cat.id_category === skill.category_id,
-                  )?.name || "Sem categoria"}
-                </p>
-                {skill.description && (
-                  <p className="text-gray-500 text-sm mt-1">
-                    {skill.description}
-                  </p>
-                )}
-              </div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(
-                  skill.level,
-                )}`}
-              >
-                {getLevelText(skill.level)}
-              </span>
-            </div>
-
-            {/* Progresso */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Progresso
-                </span>
-                <span className="text-sm font-bold text-gray-900">
-                  {getLatestPercentage(skill)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full bg-blue-500 transition-all duration-500"
-                  style={{
-                    width: `${getLatestPercentage(skill)}%`,
-                  }}
-                ></div>
-              </div>
-
-              {progressSkillId === skill.id_skill ? (
-                <div className="flex items-center gap-2 mt-3">
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={progressValue}
-                    onChange={(e) => setProgressValue(Number(e.target.value))}
-                    className="w-20 px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                  <span className="text-sm text-gray-600">%</span>
-                  <button
-                    onClick={() => handleSaveProgress(skill.id_skill)}
-                    className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors duration-200"
-                  >
-                    Salvar
-                  </button>
-                  <button
-                    onClick={() => setProgressSkillId(null)}
-                    className="text-gray-500 px-2 py-1 text-sm hover:text-gray-700"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => openProgressForm(skill)}
-                  className="mt-3 text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  Registrar progresso
-                </button>
-              )}
-            </div>
-
-            {/* Estatísticas */}
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-4 h-4 text-green-500" />
-                <span>{skill.progress_history?.length || 0} atualizações</span>
-              </div>
-              <span>{skill.goals?.length || 0} metas</span>
-            </div>
-
-            {/* Botões */}
-            <div className="flex gap-2 pt-4 border-t border-gray-200">
-              <button
-                onClick={() => handleEdit(skill)}
-                className="flex-1 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg hover:bg-blue-100 transition-colors duration-200 text-sm font-medium flex items-center justify-center gap-1"
-              >
-                <Edit className="w-4 h-4" />
-                Editar
-              </button>
-              <button
-                onClick={() => handleDelete(skill.id_skill)}
-                className="flex-1 bg-red-50 text-red-600 py-2 px-3 rounded-lg hover:bg-red-100 transition-colors duration-200 text-sm font-medium flex items-center justify-center gap-1"
-              >
-                <Trash2 className="w-4 h-4" />
-                Excluir
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredSkills.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Award className="w-12 h-12 text-gray-400" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">
-            {searchTerm
-              ? "Nenhuma skill encontrada"
-              : "Nenhuma skill cadastrada"}
-          </h3>
-          <p className="text-gray-600 mb-6">
-            {searchTerm
-              ? "Tente ajustar os termos da pesquisa"
-              : "Comece adicionando suas primeiras habilidades"}
-          </p>
-          {!searchTerm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors duration-200"
-            >
-              Adicionar Primeira Skill
+            <option value={0}>Todas as categorias</option>
+            {categories.map((category) => (
+              <option key={category.id_category} value={category.id_category}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={levelFilter}
+            onChange={(e) => setLevelFilter(e.target.value as SkillLevel | "")}
+            className={`${inputClass} sm:w-44`}
+            aria-label="Filtrar por nível"
+          >
+            <option value="">Todos os níveis</option>
+            {SKILL_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {SKILL_LEVEL_LABELS[level]}
+              </option>
+            ))}
+          </select>
+          {hasFilters && (
+            <button onClick={clearFilters} className={buttonGhost}>
+              Limpar
             </button>
           )}
         </div>
+      )}
+
+      {skills.length === 0 ? (
+        <EmptyState
+          icon={Layers}
+          title="Nenhuma skill cadastrada"
+          description="Cadastre as habilidades que você quer desenvolver e registre o progresso de cada uma."
+          action={
+            !showForm && (
+              <button onClick={openNewForm} className={buttonPrimary}>
+                <Plus className="h-4 w-4" /> Nova skill
+              </button>
+            )
+          }
+        />
+      ) : filteredSkills.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="Nenhuma skill encontrada"
+          description="Nenhuma skill corresponde aos filtros aplicados."
+          action={
+            <button onClick={clearFilters} className={buttonSecondary}>
+              Limpar filtros
+            </button>
+          }
+        />
+      ) : (
+        <>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {filteredSkills.length} de {skills.length} skills
+          </p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredSkills.map((skill) => {
+              const percentage = getLatestPercentage(skill);
+
+              return (
+                <article key={skill.id_skill} className={`${cardClass} flex flex-col p-5`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                        {skill.name}
+                      </h3>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{getCategoryName(skill.category_id)}</p>
+                    </div>
+                    <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-medium ${SKILL_LEVEL_BADGE[skill.level]}`}>
+                      {SKILL_LEVEL_LABELS[skill.level]}
+                    </span>
+                  </div>
+
+                  {skill.description && (
+                    <p className="mt-3 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{skill.description}</p>
+                  )}
+
+                  <div className="mt-auto pt-5">
+                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                      <span className="text-zinc-500 dark:text-zinc-400">Progresso</span>
+                      <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-100">{percentage}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800">
+                      <div className="h-1.5 rounded-full bg-emerald-600" style={{ width: `${percentage}%` }} />
+                    </div>
+                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                      {plural(skill.progress_history?.length || 0, "registro", "registros")} ·{" "}
+                      {plural(skill.goals?.length || 0, "meta", "metas")}
+                    </p>
+
+                    {progressSkillId === skill.id_skill && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={progressValue}
+                          onChange={(e) => setProgressValue(Number(e.target.value))}
+                          className={`${inputClass} w-20 py-1.5`}
+                          aria-label="Progresso em porcentagem"
+                          autoFocus
+                        />
+                        <span className="text-sm text-zinc-500">%</span>
+                        <button onClick={() => handleSaveProgress(skill.id_skill)} className={`${buttonPrimary} py-1.5`}>
+                          Salvar
+                        </button>
+                        <button onClick={() => setProgressSkillId(null)} className={`${buttonGhost} py-1.5`}>
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-1 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                    <button onClick={() => openProgressForm(skill)} className={`${buttonGhost} px-2 py-1.5`}>
+                      <TrendingUp className="h-4 w-4" /> Registrar progresso
+                    </button>
+                    <button
+                      onClick={() => handleEdit(skill)}
+                      className={`${buttonGhost} ml-auto px-2 py-1.5`}
+                      title="Editar"
+                      aria-label={`Editar ${skill.name}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(skill)}
+                      className={`${buttonDanger} px-2 py-1.5`}
+                      title="Excluir"
+                      aria-label={`Excluir ${skill.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
