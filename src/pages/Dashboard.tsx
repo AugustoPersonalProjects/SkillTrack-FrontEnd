@@ -120,7 +120,7 @@ export default function Dashboard() {
         <StatCard
           label="Progresso médio"
           value={`${Math.round(data.averageProgress)}%`}
-          hint="Média de todos os registros"
+          hint="Último registro de cada skill"
           icon={TrendingUp}
         />
         <StatCard
