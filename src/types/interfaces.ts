@@ -62,16 +62,13 @@ export interface Progress {
   id_progress: number;
   percentage: number;
   date: string; 
-  notes?: string;
   skill_id: number;
-  goal_id?: number;
 }
 
 export interface ProgressRequest {
   skill_id: number;
   percentage: number;
   date?: string;
-  notes?: string;
 }
 
 // USUÁRIO / AUTENTICAÇÃO

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { skillService } from "../services/skillService";
 import { categoryService } from "../services/categoryService";
+import { progressService } from "../services/progressService";
 import {
   type Skill,
   type SkillRequest,
@@ -18,6 +19,7 @@ import {
 } from "../types/interfaces";
 import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
+import { getLatestPercentage } from "../utils/progress";
 
 export default function Skills() {
   const { user } = useAuth();
@@ -28,6 +30,9 @@ export default function Skills() {
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
+  // skill com o formulário de progresso aberto e o valor digitado
+  const [progressSkillId, setProgressSkillId] = useState<number | null>(null);
+  const [progressValue, setProgressValue] = useState(0);
 
   const [formData, setFormData] = useState<SkillRequest>({
     name: "",
@@ -133,6 +138,32 @@ export default function Skills() {
     } catch (error: unknown) {
       console.error("Erro ao excluir skill:", error);
       setError(getApiErrorMessage(error, "Erro ao excluir skill"));
+    }
+  };
+
+  const openProgressForm = (skill: Skill) => {
+    setProgressSkillId(skill.id_skill);
+    setProgressValue(getLatestPercentage(skill));
+    setError("");
+  };
+
+  const handleSaveProgress = async (skillId: number) => {
+    if (progressValue < 0 || progressValue > 100) {
+      setError("O progresso deve estar entre 0 e 100%");
+      return;
+    }
+
+    try {
+      await progressService.createProgress({
+        skill_id: skillId,
+        percentage: progressValue,
+      });
+      setProgressSkillId(null);
+      setError("Progresso registrado com sucesso!");
+      await loadSkills();
+    } catch (error: unknown) {
+      console.error("Erro ao registrar progresso:", error);
+      setError(getApiErrorMessage(error, "Erro ao registrar progresso"));
     }
   };
 
@@ -398,30 +429,51 @@ export default function Skills() {
                   Progresso
                 </span>
                 <span className="text-sm font-bold text-gray-900">
-                  {skill.progress_history && skill.progress_history.length > 0
-                    ? `${
-                        skill.progress_history[
-                          skill.progress_history.length - 1
-                        ]?.percentage || 0
-                      }%`
-                    : "0%"}
+                  {getLatestPercentage(skill)}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="h-2 rounded-full bg-blue-500 transition-all duration-500"
                   style={{
-                    width: `${
-                      skill.progress_history &&
-                      skill.progress_history.length > 0
-                        ? skill.progress_history[
-                            skill.progress_history.length - 1
-                          ]?.percentage || 0
-                        : 0
-                    }%`,
+                    width: `${getLatestPercentage(skill)}%`,
                   }}
                 ></div>
               </div>
+
+              {progressSkillId === skill.id_skill ? (
+                <div className="flex items-center gap-2 mt-3">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={progressValue}
+                    onChange={(e) => setProgressValue(Number(e.target.value))}
+                    className="w-20 px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <span className="text-sm text-gray-600">%</span>
+                  <button
+                    onClick={() => handleSaveProgress(skill.id_skill)}
+                    className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors duration-200"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onClick={() => setProgressSkillId(null)}
+                    className="text-gray-500 px-2 py-1 text-sm hover:text-gray-700"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => openProgressForm(skill)}
+                  className="mt-3 text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Registrar progresso
+                </button>
+              )}
             </div>
 
             {/* Estatísticas */}
