@@ -74,4 +74,4 @@ O arquivo `vercel.json` redireciona todas as rotas para o `index.html`, permitin
 
 👨‍💻 Desenvolvido por Augusto Lopes Lyra — FIAP
 
-🤖 Este projeto foi desenvolvido com auxílio de Inteligência Artificial no deploy, no versionamento e em partes do código (interface do front-end e cálculo do dashboard).
+🤖 Este projeto foi desenvolvido com auxílio de Inteligência Artificial no deploy, no versionamento e em partes do código (interface do front-end, área de administração e cálculo do dashboard).
