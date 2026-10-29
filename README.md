@@ -21,6 +21,10 @@ A API (Java + Spring Boot) está no repositório [SkillTrack](https://github.com
 - **Metas**: cadastro, edição, conclusão e exclusão, com filtros por status (em andamento, atrasadas, concluídas), skill e texto
 - **Modo escuro**: alternado pelo botão na barra superior; segue o tema do sistema até ser escolhido manualmente
 - **Layout responsivo**: no celular, a navegação vira um menu lateral
+- **Administração** (perfil ADMIN): resumo do sistema, lista de usuários com busca e filtro por perfil, cadastro, edição de perfil e exclusão de usuários, detalhe com as skills e metas de cada usuário e gestão de categorias
+- **Componentes de interface** feitos à mão, inspirados no [shadcn/ui](https://ui.shadcn.com): Select com navegação por teclado, Dialog para formulários e confirmação de exclusão
+
+> Para acessar a área de administração, a conta precisa ter o perfil ADMIN. Veja as variáveis `ADMIN_EMAIL` e `ADMIN_PASSWORD` no README da API.
 
 ## 🧰 Tecnologias
 
@@ -70,4 +74,4 @@ O arquivo `vercel.json` redireciona todas as rotas para o `index.html`, permitin
 
 👨‍💻 Desenvolvido por Augusto Lopes Lyra — FIAP
 
-🤖 Este projeto foi desenvolvido com auxílio de Inteligência Artificial para o deploy e o versionamento.
+🤖 Este projeto foi desenvolvido com auxílio de Inteligência Artificial no deploy, no versionamento e em partes do código (interface do front-end e cálculo do dashboard).
