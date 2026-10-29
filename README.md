@@ -14,6 +14,14 @@ A API (Java + Spring Boot) está no repositório [SkillTrack](https://github.com
 
 > ℹ️ A API usa o plano gratuito do Render, que suspende o serviço após ~15 minutos sem uso. O primeiro acesso depois disso pode levar até um minuto.
 
+## ✨ Funcionalidades
+
+- **Visão geral**: estatísticas, progresso por skill, próximas metas e registros recentes, vindos do endpoint `/dashboard` da API
+- **Skills**: cadastro, edição e exclusão, registro de progresso e filtros por texto, categoria e nível
+- **Metas**: cadastro, edição, conclusão e exclusão, com filtros por status (em andamento, atrasadas, concluídas), skill e texto
+- **Modo escuro**: alternado pelo botão na barra superior; segue o tema do sistema até ser escolhido manualmente
+- **Layout responsivo**: no celular, a navegação vira um menu lateral
+
 ## 🧰 Tecnologias
 
 - React 19 + TypeScript
