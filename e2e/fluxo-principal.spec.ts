@@ -1,22 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { cadastrar, entrar } from "./helpers";
 
-const SENHA = "senha-de-teste";
 const PRAZO_FUTURO = "2099-12-31";
-
-// o banco não é limpo entre as execuções, então cada teste cria a própria conta
-const novoEmail = () => `e2e-${Date.now()}-${Math.floor(Math.random() * 100000)}@exemplo.com`;
-
-async function cadastrar(page: Page) {
-  const email = novoEmail();
-  await page.goto("/register");
-  await page.getByLabel("Nome").fill("Pessoa de Teste");
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha", { exact: true }).fill(SENHA);
-  await page.getByLabel("Confirmar senha").fill(SENHA);
-  await page.getByRole("button", { name: "Criar conta" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
-  return email;
-}
 
 async function criarSkill(page: Page, nome: string) {
   await page.getByRole("link", { name: "Skills", exact: true }).click();
@@ -51,10 +36,7 @@ test("cadastro, login, skill, progresso e visão geral", async ({ page }) => {
   await page.getByRole("button", { name: "Sair" }).click();
   await expect(page).toHaveURL(/\/login$/);
 
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill(SENHA);
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await entrar(page, email);
 
   await criarSkill(page, "Playwright");
 

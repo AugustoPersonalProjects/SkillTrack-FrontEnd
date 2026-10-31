@@ -29,6 +29,10 @@ jobs:
     name: Testes de ponta a ponta
     needs: qualidade
     runs-on: ubuntu-latest
+    env:
+      # conta criada só para esta execução, em um banco descartável
+      E2E_ADMIN_EMAIL: admin-e2e@exemplo.com
+      E2E_ADMIN_PASSWORD: senha-do-admin-e2e
     services:
       mysql:
         image: mysql:8.4
@@ -60,8 +64,13 @@ jobs:
           cache: maven
           cache-dependency-path: api/pom.xml
 
+      # o limite de tentativas fica desligado porque os testes criam várias contas a partir do mesmo IP
       - name: Sobe a API
         working-directory: api
+        env:
+          RATE_LIMIT_ENABLED: "false"
+          ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
         run: |
           sh mvnw -B -q -DskipTests package
           JWT_SECRET="$(openssl rand -hex 32)" nohup java -jar target/*.jar > api.log 2>&1 &
