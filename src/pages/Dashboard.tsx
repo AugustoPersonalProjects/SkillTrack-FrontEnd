@@ -48,9 +48,6 @@ function SectionCard({ title, link, children }: { title: string; link?: { to: st
 }
 
 function GoalStatus({ goal }: { goal: Goal }) {
-  if (goal.completed) {
-    return <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Concluída</span>;
-  }
   if (goal.deadline && goal.deadline < todayLocalISO()) {
     return <span className="text-xs font-medium text-red-600 dark:text-red-400">Atrasada</span>;
   }
@@ -167,7 +164,7 @@ export default function Dashboard() {
           <div className="space-y-6 lg:col-span-2">
             <SectionCard title="Próximas metas" link={{ to: "/goals", label: "Ver metas" }}>
               {data.goals.length === 0 ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Nenhuma meta cadastrada.</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Nenhuma meta pendente.</p>
               ) : (
                 <ul className="-my-2 divide-y divide-zinc-100 dark:divide-zinc-800">
                   {data.goals.map((goal) => (
