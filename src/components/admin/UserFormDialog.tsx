@@ -4,6 +4,7 @@ import Select from "../ui/Select";
 import Alert from "../ui/Alert";
 import { buttonPrimary, buttonSecondary, inputClass, labelClass } from "../ui/styles";
 import { Perfil, type Usuario } from "../../types/interfaces";
+import { useAuth } from "../../contexts/useAuth";
 import { adminService } from "../../services/adminService";
 import { getApiErrorMessage } from "../../utils/getApiErrorMessage";
 
@@ -15,13 +16,16 @@ const PERFIL_OPTIONS = [
 interface UserFormDialogProps {
   open: boolean;
   // usuário em edição; ausente para cadastrar um novo
-  user?: Usuario | null;
+  user?: Omit<Usuario, "bio" | "tema"> | null;
   onClose: () => void;
   onSaved: (message: string) => void;
 }
 
 export default function UserFormDialog({ open, user, onClose, onSaved }: UserFormDialogProps) {
+  const { user: currentUser } = useAuth();
   const isEditing = Boolean(user);
+  // as próprias credenciais só mudam em Meu perfil, onde a senha atual é confirmada
+  const isSelf = user?.id_usuario === currentUser?.id_usuario;
   const [form, setForm] = useState({ nome: "", email: "", senha: "", perfil: Perfil.USER as Perfil });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -70,9 +74,11 @@ export default function UserFormDialog({ open, user, onClose, onSaved }: UserFor
       onClose={onClose}
       title={isEditing ? "Editar usuário" : "Novo usuário"}
       description={
-        isEditing
-          ? "Alterar o e-mail encerra a sessão atual desse usuário."
-          : "O usuário poderá entrar com o e-mail e a senha definidos aqui."
+        isSelf
+          ? "O seu e-mail e a sua senha são alterados em Meu perfil."
+          : isEditing
+            ? "Definir uma nova senha encerra as sessões abertas desse usuário."
+            : "O usuário poderá entrar com o e-mail e a senha definidos aqui."
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -102,6 +108,7 @@ export default function UserFormDialog({ open, user, onClose, onSaved }: UserFor
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             className={inputClass}
             maxLength={150}
+            disabled={isSelf}
             required
           />
         </div>
@@ -118,6 +125,7 @@ export default function UserFormDialog({ open, user, onClose, onSaved }: UserFor
               value={form.senha}
               onChange={(e) => setForm({ ...form, senha: e.target.value })}
               className={inputClass}
+              disabled={isSelf}
               required={!isEditing}
             />
           </div>
