@@ -1,5 +1,8 @@
 # 🧠 SkillTrack — Front-end
 
+[![CI](https://github.com/AugustoPersonalProjects/SkillTrack-FrontEnd/actions/workflows/ci.yml/badge.svg)](https://github.com/AugustoPersonalProjects/SkillTrack-FrontEnd/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/AugustoPersonalProjects/SkillTrack-FrontEnd/actions/workflows/codeql.yml/badge.svg)](https://github.com/AugustoPersonalProjects/SkillTrack-FrontEnd/actions/workflows/codeql.yml)
+
 Interface web do **SkillTrack**, sistema de gestão de habilidades profissionais. Permite cadastrar skills, definir metas de aprendizado e acompanhar o progresso.
 
 A API (Java + Spring Boot) está no repositório [SkillTrack](https://github.com/AugustoPersonalProjects/SkillTrack).
@@ -33,6 +36,7 @@ A API (Java + Spring Boot) está no repositório [SkillTrack](https://github.com
 - Tailwind CSS
 - React Router
 - Axios (autenticação JWT)
+- Vitest e Playwright (testes)
 
 ## ▶️ Executando localmente
 
@@ -53,6 +57,18 @@ A aplicação fica disponível em `http://localhost:5173`.
 
 Para configurar localmente, copie `.env.example` para `.env`.
 
+## 🧪 Testes
+
+```bash
+npm test                              # regras de utils/, com Vitest
+npx playwright install chromium       # só na primeira vez
+npm run test:e2e                      # fluxo principal no navegador, com Playwright
+```
+
+Os testes de ponta a ponta precisam da API rodando em um banco local, pois criam contas de teste a cada execução. Use `E2E_API_URL` se ela não estiver em `http://localhost:8080`. O front sobe sozinho na porta 5174, sem usar o `VITE_API_URL` de um `.env` local.
+
+A cada push em `main` e em cada pull request, o GitHub Actions roda o lint, os testes e o build, e faz a análise de segurança com o CodeQL. Os testes de ponta a ponta usam a versão da API que está na branch principal do repositório dela.
+
 ## ☁️ Deploy (Vercel)
 
 1. Importe este repositório na Vercel (framework **Vite**).
@@ -69,6 +85,8 @@ O arquivo `vercel.json` redireciona todas as rotas para o `index.html`, permitin
 | `npm run build` | Verificação de tipos e build de produção |
 | `npm run lint` | Análise estática com ESLint |
 | `npm run preview` | Pré-visualização do build |
+| `npm test` | Testes unitários |
+| `npm run test:e2e` | Testes de ponta a ponta |
 
 ---
 
