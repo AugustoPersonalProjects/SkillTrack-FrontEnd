@@ -25,7 +25,8 @@ A API (Java + Spring Boot) está no repositório [SkillTrack](https://github.com
 - **Perfil**: nome, bio e cor do avatar, além da troca de e-mail e de senha com a confirmação da senha atual. Trocar a senha encerra as sessões abertas nos outros dispositivos
 - **Modo escuro**: alternado pelo botão na barra superior ou em Meu perfil. A escolha fica salva na conta e acompanha o usuário em outros dispositivos; sem uma escolha, segue o tema do sistema
 - **Layout responsivo**: no celular, a navegação vira um menu lateral
-- **Administração** (perfil ADMIN): resumo do sistema, lista de usuários com busca e filtro por perfil, cadastro, edição de perfil e exclusão de usuários, detalhe com as skills e metas de cada usuário e gestão de categorias
+- **Administração** (perfil ADMIN): painel com indicadores e gráficos, lista de usuários com busca e filtro por perfil, cadastro, edição de perfil e exclusão de usuários, detalhe com as skills e metas de cada usuário e gestão de categorias
+- **Painel de administração**: usuários novos e ativos, progresso médio, atividade por semana, situação das metas, skills por categoria e por nível e usuários mais ativos. Cada gráfico tem uma versão em tabela, responde ao teclado e usa cores validadas para daltonismo nos dois temas
 - **Componentes de interface** feitos à mão, inspirados no [shadcn/ui](https://ui.shadcn.com): Select com navegação por teclado, Dialog para formulários e confirmação de exclusão
 
 > Para acessar a área de administração, a conta precisa ter o perfil ADMIN. Veja as variáveis `ADMIN_EMAIL` e `ADMIN_PASSWORD` no README da API.
@@ -37,6 +38,7 @@ A API (Java + Spring Boot) está no repositório [SkillTrack](https://github.com
 - Tailwind CSS
 - React Router
 - Axios (autenticação JWT)
+- Recharts (gráficos do painel, carregados só por quem abre a página)
 - Vitest e Playwright (testes)
 
 ## ▶️ Executando localmente

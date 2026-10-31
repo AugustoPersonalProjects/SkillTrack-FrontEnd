@@ -201,3 +201,25 @@ export interface AdminResumo {
   totalCategories: number;
   usuarios: AdminUsuarioResumo[];
 }
+
+// Resposta do GET /admin/dashboard. O período é "yyyy-MM" nos meses e a segunda-feira nas semanas
+export interface AdminDashboard {
+  indicadores: {
+    totalUsuarios: number;
+    novosUsuarios30Dias: number;
+    usuariosAtivos30Dias: number;
+    totalSkills: number;
+    progressoMedio: number;
+    totalGoals: number;
+    completedGoals: number;
+    overdueGoals: number;
+  };
+  novosUsuariosPorMes: { periodo: string; total: number }[];
+  progressosPorSemana: { periodo: string; total: number }[];
+  registrosPorMes: { periodo: string; skills: number; metas: number; metasConcluidas: number }[];
+  skillsSemData: number;
+  metasSemData: number;
+  skillsPorCategoria: { categoria: string; total: number }[];
+  skillsPorNivel: { nivel: SkillLevel; total: number }[];
+  usuariosMaisAtivos: { id_usuario: number; nome: string; cor_avatar: CorAvatar; registros: number }[];
+}

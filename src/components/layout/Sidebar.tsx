@@ -1,4 +1,4 @@
-import { LayoutDashboard, Layers, Target, LogOut, X, Users, Tags } from "lucide-react";
+import { ChartColumn, LayoutDashboard, Layers, Target, LogOut, X, Users, Tags } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import Logo from "../ui/Logo";
@@ -13,6 +13,7 @@ const links = [
 ];
 
 const adminLinks = [
+  { to: "/admin/painel", label: "Painel", icon: ChartColumn },
   { to: "/admin/usuarios", label: "Usuários", icon: Users },
   { to: "/admin/categorias", label: "Categorias", icon: Tags },
 ];
