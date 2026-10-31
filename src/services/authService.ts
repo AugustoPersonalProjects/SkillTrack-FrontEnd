@@ -6,6 +6,7 @@ import type {
   Usuario,
 } from "../types/interfaces";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
+import { clearSession } from "../utils/session";
 
 // Lê o id do usuário gravado no payload do JWT pelo backend (claim "id")
 const getUserIdFromToken = (token: string): number => {
@@ -58,10 +59,7 @@ export const authService = {
   },
 
   logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    // as notificações são do usuário logado e não devem aparecer para o próximo
-    localStorage.removeItem("notifications");
+    clearSession();
   },
 
   // Recarrega os dados do usuário logado (ex.: perfil alterado por um ADMIN)
