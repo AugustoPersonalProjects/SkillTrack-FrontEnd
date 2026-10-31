@@ -7,6 +7,7 @@ import Skills from "./pages/Skills";
 import Goals from "./pages/Goals";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -46,6 +47,7 @@ function AppRoutes() {
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="skills" element={<Skills />} />
                   <Route path="goals" element={<Goals />} />
+                  <Route path="perfil" element={<Profile />} />
                   {/* Administração (perfil ADMIN) */}
                   <Route path="admin" element={<Navigate to="/admin/usuarios" replace />} />
                   <Route path="admin/usuarios" element={<AdminRoute><AdminOverview /></AdminRoute>} />

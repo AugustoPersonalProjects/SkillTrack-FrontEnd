@@ -1,29 +1,32 @@
 import api from "./api";
-import type {
-  LoginRequest,
-  LoginResponse,
-  RegisterRequest,
-  Usuario,
+import {
+  Tema,
+  type LoginRequest,
+  type LoginResponse,
+  type RegisterRequest,
+  type Usuario,
 } from "../types/interfaces";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
 import { clearSession } from "../utils/session";
+import { applyTheme } from "../utils/theme";
 
-// Lê o id do usuário gravado no payload do JWT pelo backend (claim "id")
-const getUserIdFromToken = (token: string): number => {
-  const payload = token.split(".")[1];
-  const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-  return JSON.parse(json).id;
+const saveUser = ({ id_usuario, nome, email, perfil, data_criacao, bio, cor_avatar, tema }: Usuario): Usuario => {
+  const userData: Usuario = { id_usuario, nome, email, perfil, data_criacao, bio, cor_avatar, tema };
+  localStorage.setItem("user", JSON.stringify(userData));
+  return userData;
 };
 
 // Salva o token e carrega os dados do usuário dono dele
 const startSession = async (token: string): Promise<Usuario> => {
   localStorage.setItem("token", token);
 
-  const response = await api.get<Usuario>(`/usuarios/${getUserIdFromToken(token)}`);
-  const { id_usuario, nome, email, perfil, data_criacao } = response.data;
-  const userData: Usuario = { id_usuario, nome, email, perfil, data_criacao };
+  const response = await api.get<Usuario>("/usuarios/me");
+  const userData = saveUser(response.data);
 
-  localStorage.setItem("user", JSON.stringify(userData));
+  // o tema escolhido na conta vale em qualquer dispositivo; em SISTEMA, cada navegador mantém o seu
+  if (userData.tema !== Tema.SISTEMA) {
+    applyTheme(userData.tema);
+  }
   return userData;
 };
 
@@ -67,6 +70,8 @@ export const authService = {
     const token = this.getToken();
     return token ? startSession(token) : null;
   },
+
+  saveUser,
 
   getCurrentUser(): Usuario | null {
     try {

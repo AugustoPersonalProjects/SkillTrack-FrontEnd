@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { RegisterRequest, Usuario } from "../types/interfaces";
+import type { RegisterRequest, Tema, Usuario } from "../types/interfaces";
 
 export interface AuthContextType {
   user: Usuario | null;
@@ -9,6 +9,8 @@ export interface AuthContextType {
     data: RegisterRequest,
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
+  updateUser: (user: Usuario) => void;
+  changeTheme: (tema: Tema) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

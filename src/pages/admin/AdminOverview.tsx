@@ -187,7 +187,7 @@ export default function AdminOverview() {
                   <tr key={u.id_usuario} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
                     <td className="px-4 py-3">
                       <Link to={`/admin/usuarios/${u.id_usuario}`} className="group flex items-center gap-3">
-                        <Avatar name={u.nome} />
+                        <Avatar name={u.nome} color={u.cor_avatar} />
                         <div className="min-w-0">
                           <p className="truncate font-medium text-zinc-900 group-hover:underline dark:text-zinc-100">
                             {u.nome}

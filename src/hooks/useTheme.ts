@@ -1,31 +1,15 @@
-import { useCallback, useSyncExternalStore } from "react";
-
-type Theme = "light" | "dark";
-
-const THEME_EVENT = "theme-changed";
-
-const getTheme = (): Theme =>
-  document.documentElement.classList.contains("dark") ? "dark" : "light";
+import { useSyncExternalStore } from "react";
+import { getCurrentTheme, getThemePreference, THEME_EVENT } from "../utils/theme";
 
 const subscribe = (callback: () => void) => {
   window.addEventListener(THEME_EVENT, callback);
   return () => window.removeEventListener(THEME_EVENT, callback);
 };
 
-// O tema inicial é aplicado por um script no index.html; aqui ele só é alternado e salvo
+// O tema inicial é aplicado por um script no index.html; os componentes só acompanham as mudanças
 export function useTheme() {
-  const theme = useSyncExternalStore(subscribe, getTheme);
+  const theme = useSyncExternalStore(subscribe, getCurrentTheme);
+  const preference = useSyncExternalStore(subscribe, getThemePreference);
 
-  const toggleTheme = useCallback(() => {
-    const next: Theme = getTheme() === "dark" ? "light" : "dark";
-    document.documentElement.classList.toggle("dark", next === "dark");
-    try {
-      localStorage.setItem("theme", next);
-    } catch {
-      // sem localStorage o tema vale só para esta visita
-    }
-    window.dispatchEvent(new Event(THEME_EVENT));
-  }, []);
-
-  return { theme, toggleTheme };
+  return { theme, preference };
 }
