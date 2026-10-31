@@ -1,34 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { cadastrar, entrar } from "./helpers";
-
-const PRAZO_FUTURO = "2099-12-31";
-
-async function criarSkill(page: Page, nome: string) {
-  await page.getByRole("link", { name: "Skills", exact: true }).click();
-  await page.getByRole("button", { name: "Nova skill" }).first().click();
-
-  const dialogo = page.getByRole("dialog");
-  await dialogo.getByLabel("Nome").fill(nome);
-  await dialogo.getByLabel("Categoria").click();
-  await page.getByRole("option", { name: "Backend" }).click();
-  await dialogo.getByRole("button", { name: "Criar skill" }).click();
-
-  await expect(page.getByRole("article").filter({ hasText: nome })).toBeVisible();
-}
-
-async function criarMeta(page: Page, titulo: string, nomeSkill: string) {
-  await page.getByRole("link", { name: "Metas", exact: true }).click();
-  await page.getByRole("button", { name: "Nova meta" }).first().click();
-
-  const dialogo = page.getByRole("dialog");
-  await dialogo.getByLabel("Título").fill(titulo);
-  await dialogo.getByLabel("Skill").click();
-  await page.getByRole("option", { name: nomeSkill }).click();
-  await dialogo.getByLabel("Prazo").fill(PRAZO_FUTURO);
-  await dialogo.getByRole("button", { name: "Criar meta" }).click();
-
-  await expect(page.getByRole("heading", { name: titulo })).toBeVisible();
-}
+import { expect, test } from "@playwright/test";
+import { cadastrar, criarMeta, criarSkill, entrar, registrarProgresso } from "./helpers";
 
 test("cadastro, login, skill, progresso e visão geral", async ({ page }) => {
   const email = await cadastrar(page);
@@ -40,12 +11,7 @@ test("cadastro, login, skill, progresso e visão geral", async ({ page }) => {
 
   await criarSkill(page, "Playwright");
 
-  const card = page.getByRole("article").filter({ hasText: "Playwright" });
-  await card.getByRole("button", { name: "Registrar progresso" }).click();
-  await card.getByLabel("Progresso em porcentagem").fill("60");
-  await card.getByRole("button", { name: "Salvar" }).click();
-  await expect(page.getByText("Progresso registrado.")).toBeVisible();
-  await expect(card.getByText("60%")).toBeVisible();
+  await registrarProgresso(page, "Playwright", 60);
 
   await page.getByRole("link", { name: "Visão geral" }).click();
   const secaoProgresso = page.locator("section").filter({ hasText: "Progresso por skill" });
