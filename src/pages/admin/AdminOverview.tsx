@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Users, Pencil, Trash2, ShieldCheck, Layers, Target, Tags } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { useAuth } from "../../contexts/useAuth";
 import { Perfil, type AdminResumo, type AdminUsuarioResumo } from "../../types/interfaces";
@@ -13,6 +12,7 @@ import Select from "../../components/ui/Select";
 import Badge from "../../components/ui/Badge";
 import Avatar from "../../components/ui/Avatar";
 import EmptyState from "../../components/ui/EmptyState";
+import StatCard from "../../components/ui/StatCard";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import UserFormDialog from "../../components/admin/UserFormDialog";
 import { buttonDanger, buttonGhost, buttonPrimary, cardClass, inputClass } from "../../components/ui/styles";
@@ -24,19 +24,6 @@ const PERFIL_FILTER_OPTIONS: { value: PerfilFilter; label: string }[] = [
   { value: Perfil.USER, label: "Usuários" },
   { value: Perfil.ADMIN, label: "Administradores" },
 ];
-
-function StatCard({ label, value, hint, icon: Icon }: { label: string; value: number; hint: string; icon: LucideIcon }) {
-  return (
-    <div className={`${cardClass} p-5`}>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
-        <Icon className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
-      </div>
-      <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-100">{value}</p>
-      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
-    </div>
-  );
-}
 
 const formatDate = (date: string) => new Date(date).toLocaleDateString("pt-BR");
 
@@ -187,7 +174,7 @@ export default function AdminOverview() {
                   <tr key={u.id_usuario} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
                     <td className="px-4 py-3">
                       <Link to={`/admin/usuarios/${u.id_usuario}`} className="group flex items-center gap-3">
-                        <Avatar name={u.nome} />
+                        <Avatar name={u.nome} color={u.cor_avatar} />
                         <div className="min-w-0">
                           <p className="truncate font-medium text-zinc-900 group-hover:underline dark:text-zinc-100">
                             {u.nome}

@@ -1,5 +1,6 @@
 import api from "./api";
 import type {
+  AdminDashboard,
   AdminResumo,
   Usuario,
   UsuarioCreateRequest,
@@ -10,6 +11,11 @@ import type {
 export const adminService = {
   async getResumo(): Promise<AdminResumo> {
     const response = await api.get<AdminResumo>("/admin/resumo");
+    return response.data;
+  },
+
+  async getDashboard(): Promise<AdminDashboard> {
+    const response = await api.get<AdminDashboard>("/admin/dashboard");
     return response.data;
   },
 

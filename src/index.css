@@ -15,6 +15,39 @@ html.dark {
   color-scheme: dark;
 }
 
+/* Cores dos gráficos, validadas para daltonismo e contraste contra o fundo dos cards em cada tema */
+:root {
+  --chart-surface: #ffffff;
+  --chart-grid: #f4f4f5;
+  --chart-axis: #d4d4d8;
+  --chart-text: #71717b;
+  --chart-cursor: rgb(0 0 0 / 0.04);
+  --chart-serie-1: #009966;
+  --chart-serie-2: #f54900;
+  --chart-serie-3: #7f22fe;
+  --chart-meta-concluida: #009966;
+  --chart-meta-andamento: #0084d1;
+  --chart-meta-atrasada: #e7000b;
+  --chart-nivel-1: #00bc7d;
+  --chart-nivel-2: #009966;
+  --chart-nivel-3: #007a55;
+  --chart-nivel-4: #006045;
+}
+
+html.dark {
+  --chart-surface: #18181b;
+  --chart-grid: #27272a;
+  --chart-axis: #3f3f46;
+  --chart-text: #9f9fa9;
+  --chart-cursor: rgb(255 255 255 / 0.06);
+  --chart-serie-3: #8e51ff;
+  --chart-meta-atrasada: #fb2c36;
+  --chart-nivel-1: #007a55;
+  --chart-nivel-2: #009966;
+  --chart-nivel-3: #00bc7d;
+  --chart-nivel-4: #5ee9b5;
+}
+
 body {
   @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
 }

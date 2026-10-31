@@ -1,4 +1,4 @@
-import { LayoutDashboard, Layers, Target, LogOut, X, Users, Tags } from "lucide-react";
+import { ChartColumn, LayoutDashboard, Layers, Target, LogOut, X, Users, Tags } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import Logo from "../ui/Logo";
@@ -13,6 +13,7 @@ const links = [
 ];
 
 const adminLinks = [
+  { to: "/admin/painel", label: "Painel", icon: ChartColumn },
   { to: "/admin/usuarios", label: "Usuários", icon: Users },
   { to: "/admin/categorias", label: "Categorias", icon: Tags },
 ];
@@ -82,12 +83,26 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <Avatar name={user?.nome} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{user?.nome || "Usuário"}</p>
-              <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{user?.email}</p>
-            </div>
+          <div className="flex items-center gap-1">
+            <NavLink
+              to="/perfil"
+              onClick={onClose}
+              title="Meu perfil"
+              className={({ isActive }) =>
+                `flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-2 transition-colors ${
+                  isActive ? "bg-zinc-100 dark:bg-zinc-800" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+                }`
+              }
+            >
+              <Avatar name={user?.nome} color={user?.cor_avatar} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <span className="sr-only">Meu perfil: </span>
+                  {user?.nome || "Usuário"}
+                </p>
+                <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{user?.email}</p>
+              </div>
+            </NavLink>
             <button onClick={logout} className={iconButton} title="Sair" aria-label="Sair">
               <LogOut className="h-[18px] w-[18px]" />
             </button>
