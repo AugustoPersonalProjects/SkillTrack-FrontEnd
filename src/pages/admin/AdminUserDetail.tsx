@@ -122,7 +122,7 @@ export default function AdminUserDetail() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <Avatar name={user.nome} size="lg" />
+          <Avatar name={user.nome} color={user.cor_avatar} size="lg" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{user.nome}</h1>

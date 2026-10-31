@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qualidade:
+    name: Lint, testes e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    name: Testes de ponta a ponta
+    needs: qualidade
+    runs-on: ubuntu-latest
+    env:
+      # conta criada só para esta execução, em um banco descartável
+      E2E_ADMIN_EMAIL: admin-e2e@exemplo.com
+      E2E_ADMIN_PASSWORD: senha-do-admin-e2e
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: skilltrack
+          MYSQL_USER: skilltrack
+          MYSQL_PASSWORD: skilltrack
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uskilltrack -pskilltrack"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # a API fica em outro repositório: os testes usam a versão da branch principal dela
+      - uses: actions/checkout@v7
+        with:
+          repository: AugustoPersonalProjects/SkillTrack
+          path: api
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: api/pom.xml
+
+      # o limite de tentativas fica desligado porque os testes criam várias contas a partir do mesmo IP
+      - name: Sobe a API
+        working-directory: api
+        env:
+          RATE_LIMIT_ENABLED: "false"
+          ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
+        run: |
+          sh mvnw -B -q -DskipTests package
+          JWT_SECRET="$(openssl rand -hex 32)" nohup java -jar target/*.jar > api.log 2>&1 &
+          curl -s -o /dev/null --retry 40 --retry-delay 3 --retry-connrefused http://localhost:8080/categories
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+      - name: Guarda os relatórios
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: relatorios-e2e
+          path: |
+            playwright-report
+            test-results
+            api/api.log

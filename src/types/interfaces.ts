@@ -15,6 +15,25 @@ export const Perfil = {
 
 export type Perfil = (typeof Perfil)[keyof typeof Perfil];
 
+export const CorAvatar = {
+  ESMERALDA: "ESMERALDA",
+  AZUL: "AZUL",
+  VIOLETA: "VIOLETA",
+  ROSA: "ROSA",
+  AMBAR: "AMBAR",
+  GRAFITE: "GRAFITE",
+} as const;
+
+export type CorAvatar = (typeof CorAvatar)[keyof typeof CorAvatar];
+
+export const Tema = {
+  CLARO: "CLARO",
+  ESCURO: "ESCURO",
+  SISTEMA: "SISTEMA",
+} as const;
+
+export type Tema = (typeof Tema)[keyof typeof Tema];
+
 // INTERFACES DE DOMÍNIO
 export interface Skill {
   id_skill: number;
@@ -89,7 +108,26 @@ export interface Usuario {
   email: string;
   perfil: Perfil;
   data_criacao: string;
-  foto?: string;
+  bio: string | null;
+  cor_avatar: CorAvatar;
+  tema: Tema;
+}
+
+// Dados que o próprio usuário altera sem confirmar a senha
+export interface DadosPessoaisRequest {
+  nome: string;
+  bio: string;
+  cor_avatar: CorAvatar;
+}
+
+export interface AlteracaoEmailRequest {
+  email: string;
+  senha_atual: string;
+}
+
+export interface AlteracaoSenhaRequest {
+  senha_atual: string;
+  nova_senha: string;
 }
 
 /**
@@ -146,7 +184,7 @@ export interface CategoryRequest {
   description?: string;
 }
 
-export interface AdminUsuarioResumo extends Usuario {
+export interface AdminUsuarioResumo extends Omit<Usuario, "bio" | "tema"> {
   totalSkills: number;
   totalGoals: number;
   completedGoals: number;

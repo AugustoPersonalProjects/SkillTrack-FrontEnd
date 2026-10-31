@@ -6,6 +6,7 @@ import { progressService } from "../services/progressService";
 import { type Skill, type SkillRequest, type Category, SkillLevel } from "../types/interfaces";
 import { useAuth } from "../contexts/useAuth";
 import { getApiErrorMessage } from "../utils/getApiErrorMessage";
+import { todayLocalISO } from "../utils/date";
 import { getLatestPercentage } from "../utils/progress";
 import { SKILL_LEVELS, SKILL_LEVEL_BADGE, SKILL_LEVEL_LABELS } from "../utils/skillLevel";
 import PageHeader from "../components/ui/PageHeader";
@@ -172,7 +173,7 @@ export default function Skills() {
     }
 
     try {
-      await progressService.createProgress({ skill_id: skillId, percentage: progressValue });
+      await progressService.createProgress({ skill_id: skillId, percentage: progressValue, date: todayLocalISO() });
       setProgressSkillId(null);
       await loadSkills();
       setMessage({ type: "success", text: "Progresso registrado." });
