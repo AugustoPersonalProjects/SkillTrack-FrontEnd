@@ -119,8 +119,10 @@ export default function Goals() {
     if (!formData.title.trim()) return setFormError("O título é obrigatório.");
     if (!formData.skillId) return setFormError("Selecione uma skill.");
     if (!formData.deadline) return setFormError("Informe o prazo.");
-    // datas "yyyy-MM-dd" podem ser comparadas como texto
-    if (formData.deadline < todayLocalISO()) return setFormError("O prazo deve ser hoje ou uma data futura.");
+    // datas "yyyy-MM-dd" podem ser comparadas como texto; uma meta atrasada pode manter o prazo que já tem
+    if (formData.deadline < todayLocalISO() && formData.deadline !== editingGoal?.deadline) {
+      return setFormError("O prazo deve ser hoje ou uma data futura.");
+    }
 
     const goalData = {
       title: formData.title.trim(),
@@ -170,6 +172,9 @@ export default function Goals() {
   };
 
   const skillOptions = skills.map((skill) => ({ value: skill.id_skill, label: skill.name }));
+
+  const today = todayLocalISO();
+  const minDeadline = editingGoal?.deadline && editingGoal.deadline < today ? editingGoal.deadline : today;
 
   const term = searchTerm.trim().toLowerCase();
   // busca e skill filtram a lista; o status é aplicado por último para as abas mostrarem a contagem de cada um
@@ -275,7 +280,7 @@ export default function Goals() {
                 value={formData.deadline}
                 onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                 className={inputClass}
-                min={todayLocalISO()}
+                min={minDeadline}
                 required
               />
             </div>
