@@ -8,7 +8,7 @@ import { getApiErrorMessage } from "../../utils/getApiErrorMessage";
 import Alert, { type AlertMessage } from "../ui/Alert";
 import Avatar from "../ui/Avatar";
 import { buttonPrimary, inputClass, labelClass } from "../ui/styles";
-import ProfileSection from "./ProfileSection";
+import Section from "../ui/Section";
 
 const BIO_MAX_LENGTH = 280;
 
@@ -48,7 +48,7 @@ export default function ProfileForm() {
   };
 
   return (
-    <ProfileSection id="perfil-dados" title="Dados pessoais" description="Como você aparece no SkillTrack.">
+    <Section title="Dados pessoais" description="Como você aparece no SkillTrack.">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Alert message={message} onClose={() => setMessage(null)} />
 
@@ -121,6 +121,6 @@ export default function ProfileForm() {
           {saving ? "Salvando..." : "Salvar perfil"}
         </button>
       </form>
-    </ProfileSection>
+    </Section>
   );
 }

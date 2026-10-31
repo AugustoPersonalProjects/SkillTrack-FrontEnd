@@ -4,7 +4,7 @@ import { profileService } from "../../services/profileService";
 import { getApiErrorMessage } from "../../utils/getApiErrorMessage";
 import Alert, { type AlertMessage } from "../ui/Alert";
 import { buttonPrimary, inputClass, labelClass } from "../ui/styles";
-import ProfileSection from "./ProfileSection";
+import Section from "../ui/Section";
 
 export default function EmailForm() {
   const { user, updateUser } = useAuth();
@@ -31,7 +31,7 @@ export default function EmailForm() {
   };
 
   return (
-    <ProfileSection id="perfil-email" title="E-mail" description={`O e-mail atual é ${user?.email}.`}>
+    <Section title="E-mail" description={`O e-mail atual é ${user?.email}.`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Alert message={message} onClose={() => setMessage(null)} />
 
@@ -70,6 +70,6 @@ export default function EmailForm() {
           {saving ? "Salvando..." : "Alterar e-mail"}
         </button>
       </form>
-    </ProfileSection>
+    </Section>
   );
 }

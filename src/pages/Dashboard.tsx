@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Layers, Target, TrendingUp, CircleDashed, Plus } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
 import { dashboardService } from "../services/dashboardService";
 import { skillService } from "../services/skillService";
@@ -11,22 +10,10 @@ import PageHeader from "../components/ui/PageHeader";
 import Spinner from "../components/ui/Spinner";
 import Alert from "../components/ui/Alert";
 import EmptyState from "../components/ui/EmptyState";
+import StatCard from "../components/ui/StatCard";
 import { buttonPrimary, cardClass } from "../components/ui/styles";
 
 const formatDate = (date: string) => parseLocalDate(date).toLocaleDateString("pt-BR");
-
-function StatCard({ label, value, hint, icon: Icon }: { label: string; value: string; hint: string; icon: LucideIcon }) {
-  return (
-    <div className={`${cardClass} p-5`}>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
-        <Icon className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
-      </div>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{value}</p>
-      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
-    </div>
-  );
-}
 
 function SectionCard({ title, link, children }: { title: string; link?: { to: string; label: string }; children: React.ReactNode }) {
   return (
@@ -112,8 +99,8 @@ export default function Dashboard() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Skills" value={String(data.totalSkills)} hint="Habilidades cadastradas" icon={Layers} />
-        <StatCard label="Metas" value={String(data.totalGoals)} hint="Metas cadastradas" icon={Target} />
+        <StatCard label="Skills" value={data.totalSkills} hint="Habilidades cadastradas" icon={Layers} />
+        <StatCard label="Metas" value={data.totalGoals} hint="Metas cadastradas" icon={Target} />
         <StatCard
           label="Progresso médio"
           value={`${Math.round(data.averageProgress)}%`}
@@ -122,7 +109,7 @@ export default function Dashboard() {
         />
         <StatCard
           label="Sem progresso"
-          value={String(skillsWithoutProgress)}
+          value={skillsWithoutProgress}
           hint="Skills ainda sem registro"
           icon={CircleDashed}
         />

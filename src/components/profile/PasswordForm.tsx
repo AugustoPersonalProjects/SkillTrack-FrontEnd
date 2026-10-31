@@ -3,7 +3,7 @@ import { profileService } from "../../services/profileService";
 import { getApiErrorMessage } from "../../utils/getApiErrorMessage";
 import Alert, { type AlertMessage } from "../ui/Alert";
 import { buttonPrimary, inputClass, labelClass } from "../ui/styles";
-import ProfileSection from "./ProfileSection";
+import Section from "../ui/Section";
 
 const EMPTY_FORM = { senhaAtual: "", novaSenha: "", confirmarSenha: "" };
 
@@ -46,8 +46,7 @@ export default function PasswordForm() {
   ] as const;
 
   return (
-    <ProfileSection
-      id="perfil-senha"
+    <Section
       title="Senha"
       description="Ao trocar a senha, as sessões abertas em outros dispositivos são encerradas."
     >
@@ -76,6 +75,6 @@ export default function PasswordForm() {
           {saving ? "Salvando..." : "Alterar senha"}
         </button>
       </form>
-    </ProfileSection>
+    </Section>
   );
 }

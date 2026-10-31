@@ -2,7 +2,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { useAuth } from "../../contexts/useAuth";
 import { useTheme } from "../../hooks/useTheme";
 import { Tema } from "../../types/interfaces";
-import ProfileSection from "./ProfileSection";
+import Section from "../ui/Section";
 
 const THEME_OPTIONS = [
   { value: Tema.CLARO, label: "Claro", icon: Sun },
@@ -15,8 +15,7 @@ export default function ThemeForm() {
   const { changeTheme } = useAuth();
 
   return (
-    <ProfileSection
-      id="perfil-tema"
+    <Section
       title="Aparência"
       description="Claro e Escuro ficam salvos na conta e valem em todos os dispositivos. Sistema segue a configuração deste dispositivo."
     >
@@ -49,6 +48,6 @@ export default function ThemeForm() {
           })}
         </div>
       </fieldset>
-    </ProfileSection>
+    </Section>
   );
 }
